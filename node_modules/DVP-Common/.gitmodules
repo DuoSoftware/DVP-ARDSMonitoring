@@ -1,0 +1,3 @@
+[submodule "SipNetworkProfileApi/DVP-DBModels"]
+	path = SipNetworkProfileApi/DVP-DBModels
+	url = https://github.com/DuoSoftware/DVP-DBModels.git
