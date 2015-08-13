@@ -1,0 +1,19 @@
+{
+  "name": "ArdsMonitoringAPI",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "ArdsCommon": "DuoSoftware/DVP-ARDSCommon",
+    "config": "^1.15.0",
+    "DVP-Common": "DuoSoftware/DVP-Common",
+    "node-uuid": "^1.4.3",
+    "restify": "^3.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
