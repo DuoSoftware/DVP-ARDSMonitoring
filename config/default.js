@@ -1,13 +1,17 @@
 ﻿module.exports = {
 	"Redis":{
-		"redisip":"192.168.3.200",
+		"redisip":"104.131.105.222",
+		"redisport":6379,
 		"redisdb":6
 	},
 	"Services" : {
-		"resourceSelectionUrl": "http://localhost:2223"
+		"routingServiceHost": "localhost",
+		"routingServicePort": "2223",
+		"routingServiceVersion": "1.0.0.0"
 	},
 	"Host": {
-		"Port": "2229",
+		"Ip": "127.0.0.1",
+		"Port": "2225",
 		"Version": "1.0.0.0"
 	},
 	"DB": {
@@ -15,7 +19,7 @@
 		"User": "duo",
 		"Password": "DuoS123",
 		"Port": 5432,
-		"Host": "192.168.3.200",
-		"Database": "pgtestdb"
+		"Host": "104.131.105.222",
+		"Database": "dvpdb"
 	}
 };

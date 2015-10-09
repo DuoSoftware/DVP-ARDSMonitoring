@@ -23,7 +23,7 @@ var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/requests', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
 
@@ -56,7 +56,7 @@ server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/requests', function (re
     return next();
 });
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/requests/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests/:class/:type/:category', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
             var data = req.params;
@@ -88,7 +88,7 @@ server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/requests/:class/:type/:
     return next();
 });
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/queues', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/queues', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
             var objkey = util.format('request-getallQueueDetail:company_%s:tenant_%s', company, tenant);
@@ -119,7 +119,7 @@ server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/queues', function (req,
     return next();
 });
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/queues/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/queues/:class/:type/:category', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
             var data = req.params;
@@ -152,7 +152,7 @@ server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/queues/:class/:type/:ca
 });
 
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/resources', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
             var data = req.params;
@@ -184,7 +184,7 @@ server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/resources', function (r
     return next();
 });
 
-server.get('/DVP/API/' + hostVersion + '/ARDS/MONITORING/resources/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category', function (req, res, next) {
     try {
         authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
             var data = req.params;

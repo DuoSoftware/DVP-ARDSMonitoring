@@ -1,10 +1,13 @@
 ﻿module.exports = {
 	"Redis":{
 		"redisip":"SYS_REDIS_HOST",
+		"redisport":"SYS_REDIS_PORT",
 		"redisdb":"SYS_REDIS_DB"
 	},
 	"Services" : {
-		"resourceSelectionUrl": "SYS_SERVICE_RS"
+		"routingServiceHost": "SYS_ARDSLITEROUTINGENGINE_HOST",
+		"routingServicePort": "SYS_ARDSLITEROUTINGENGINE_PORT",
+		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION"
 	},
 	"Host": {
 		"Port": "HOST_ARDSMONITORING_PORT",
