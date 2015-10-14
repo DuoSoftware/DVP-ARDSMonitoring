@@ -6,7 +6,7 @@ var resourceMonitor = require('./ResourceMonitor.js');
 var infoLogger = require('dvp-ardscommon/InformationLogger.js');
 var authHandler = require('dvp-ardscommon/Authorization.js');
 var config = require('config');
-var messageFormatter = require('dvp-dommon/CommonMessageGenerator/ClientMessageJsonFormatter.js');
+var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
