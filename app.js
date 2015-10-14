@@ -3,10 +3,10 @@ var util = require('util');
 var uuid = require('node-uuid');
 var requsetMonitor = require('./RequestMonitor.js');
 var resourceMonitor = require('./ResourceMonitor.js');
-var infoLogger = require('ArdsCommon/InformationLogger.js');
-var authHandler = require('ArdsCommon/Authorization.js');
+var infoLogger = require('dvp-ardscommon/InformationLogger.js');
+var authHandler = require('dvp-ardscommon/Authorization.js');
 var config = require('config');
-var messageFormatter = require('DVP-Common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
+var messageFormatter = require('dvp-dommon/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',

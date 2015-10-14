@@ -1,6 +1,6 @@
 ﻿var util = require('util');
 var EventEmiter = require('events').EventEmitter;
-var resourceHandler = require('ArdsCommon/ResourceHandler.js');
+var resourceHandler = require('dvp-ardscommon/ResourceHandler.js');
 
 var SearchResourceByTags = function (logkey, searchTags, callback) {
     resourceHandler.SearchResourcebyTags(logkey, searchTags, function (err, resourcelist) {

@@ -1,6 +1,6 @@
 ﻿var util = require('util');
 var EventEmiter = require('events').EventEmitter;
-var requestHandler = require('ArdsCommon/RequestHandler.js');
+var requestHandler = require('dvp-ardscommon/RequestHandler.js');
 
 var SplitAndGetStatus = function (logKey, requestlist) {
     var e = new EventEmiter();
