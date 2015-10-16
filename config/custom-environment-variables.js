@@ -10,7 +10,7 @@
 		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION"
 	},
 	"Host": {
-		"Port": "HOST_ARDSMONITORING_PORT",
+		"Port": "HOST_ARDSMONITOR_PORT",
 		"Version": "HOST_VERSION"
 	},
 	"DB": {
