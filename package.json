@@ -1,0 +1,29 @@
+{
+  "name": "dvp-ardsmonitoring",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "config": "^1.19.0",
+    "dvp-ardscommon": "^1.0.12",
+    "dvp-common": "^0.0.16",
+    "node-uuid": "^1.4.7",
+    "restify": "^4.0.3",
+    "restify-jwt": "^0.4.0",
+    "stringify": "^3.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DuoSoftware/DVP-ARDSMonitoring.git"
+  },
+  "author": "heshan.i",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DuoSoftware/DVP-ARDSMonitoring/issues"
+  },
+  "homepage": "https://github.com/DuoSoftware/DVP-ARDSMonitoring#readme"
+}
