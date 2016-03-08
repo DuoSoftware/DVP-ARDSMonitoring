@@ -27,8 +27,8 @@ var GetAllResources = function (logkey, company, tenant, callback) {
     });
 };
 
-var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, reqclass, reqtype, reqcategory, callback) {
-    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + reqclass, "type_" + reqtype, "category_" + reqcategory];
+var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, resClass, resType, resCategory, callback) {
+    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + resClass, "type_" + resType, "category_" + resCategory];
     SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
         callback(err, returnlist);
     });

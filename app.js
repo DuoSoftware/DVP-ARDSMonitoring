@@ -7,6 +7,9 @@ var infoLogger = require('dvp-ardscommon/InformationLogger.js');
 var authHandler = require('dvp-ardscommon/Authorization.js');
 var config = require('config');
 var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
+var jwt = require('restify-jwt');
+var secret = require('dvp-common/Authentication/Secret.js');
+var authorization = require('dvp-common/Authentication/Authorization.js');
 
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
@@ -18,15 +21,16 @@ server.use(restify.fullResponse());
 server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
+server.use(jwt({secret: secret.Secret}));
 
 var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
 
-server.get('/DVP/API/:version/ARDS/MONITORING/requests', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests',authorization({resource:"request", action:"read"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
-
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var objkey = util.format('request-getall:company_%s:tenant_%s', company, tenant);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
 
@@ -46,7 +50,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests', function (req, res, nex
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2)
     {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
@@ -56,16 +59,17 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests', function (req, res, nex
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/requests/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests/:serverType/:requestType',authorization({resource:"read", action:"write"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var data = req.params;
-            var objkey = util.format('request-filterByClassTypeCategory:company_%s:tenant_%s:class_%s:type_%s:category_%s', company, tenant, data["class"], data["type"], data["category"]);
+            var objkey = util.format('request-filterBy_serverType_requestType:company_%s:tenant_%s:serverType_%s:requestType_%s', company, tenant, data["serverType"], data["requestType"]);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
 
             infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
             infoLogger.ReqResLogger.log('info', '%s Start- request/getall #', logkey, {request: req.params});
-            requsetMonitor.GetRequestFilterByClassTypeCategory(logkey, company, tenant, data["class"], data["type"], data["category"], function (err, result) {
+            requsetMonitor.GetRequestFilterByClassTypeCategory(logkey, company, tenant, data["serverType"], data["requestType"], function (err, result) {
                 if (err) {
                     infoLogger.ReqResLogger.log('error', '%s End- request/getall :: Error: %s #', logkey, err);
                     var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
@@ -79,7 +83,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests/:class/:type/:category', 
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
@@ -88,9 +91,10 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests/:class/:type/:category', 
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/queues', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/queues',authorization({resource:"queue", action:"read"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var objkey = util.format('request-getallQueueDetail:company_%s:tenant_%s', company, tenant);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
 
@@ -110,7 +114,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues', function (req, res, next)
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
@@ -119,16 +122,18 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues', function (req, res, next)
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/queues/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/queues/:serverType/:requestType',authorization({resource:"queue", action:"read"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var data = req.params;
-            var objkey = util.format('queue-filterByClassTypeCategory:company_%s:tenant_%s:class_%s:type_%s:category_%s', company, tenant, data["class"], data["type"], data["category"]);
+
+            var objkey = util.format('queue-filterBysServerTyperRequestType:company_%s:tenant_%s:serverType_%s:requestType_%s', company, tenant, data["serverType"], data["requestType"]);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
 
             infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
             infoLogger.ReqResLogger.log('info', '%s Start- request/getall #', logkey, {request: req.params});
-            requsetMonitor.GetQueueDetailsFilterByClassTypeCategory(logkey, company, tenant, data["class"], data["type"], data["category"], function (err, result) {
+            requsetMonitor.GetQueueDetailsFilterByClassTypeCategory(logkey, company, tenant, data["serverType"], data["requestType"], function (err, result) {
                 if (err) {
                     infoLogger.ReqResLogger.log('error', '%s End- request/getall :: Error: %s #', logkey, err);
                     var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
@@ -142,7 +147,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues/:class/:type/:category', fu
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
@@ -152,9 +156,10 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues/:class/:type/:category', fu
 });
 
 
-server.get('/DVP/API/:version/ARDS/MONITORING/resources', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"resource", action:"read"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var data = req.params;
             var objkey = util.format('resource-getall:company_%s:tenant_%s', company, tenant);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
@@ -175,7 +180,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources', function (req, res, ne
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
@@ -184,9 +188,10 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources', function (req, res, ne
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category', function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',authorization({resource:"resource", action:"read"}), function (req, res, next) {
     try {
-        authHandler.ValidateAuthToken(req.header('authorization'), function (company, tenant) {
+            var company = req.user.company;
+            var tenant = req.user.tenant;
             var data = req.params;
             var objkey = util.format('resource-filterByClassTypeCategory:company_%s:tenant_%s:class_%s:type_%s:category_%s', company, tenant, data["class"], data["type"], data["category"]);
             var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
@@ -207,7 +212,6 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',
                     res.end(jsonString);
                 }
             });
-        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});

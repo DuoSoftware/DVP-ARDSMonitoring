@@ -64,8 +64,8 @@ var GetAllRequests = function (logkey, company, tenant, callback) {
     });
 };
 
-var GetRequestFilterByClassTypeCategory = function (logkey, company, tenant, reqclass, reqtype, reqcategory, callback) {
-    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + reqclass, "type_" + reqtype, "category_" + reqcategory];
+var GetRequestFilterByClassTypeCategory = function (logkey, company, tenant, reqServer, reqType, callback) {
+    var searchTags = ["company_" + company, "tenant_" + tenant, "serverType_" + reqServer, "requestType_" + reqType];
     SearchRequestByTags(logkey, searchTags, function (err, returnlist) {
         callback(err, returnlist);
     });
@@ -101,8 +101,8 @@ var GetAllQueueDetails = function (logkey, company, tenant, callback) {
     });
 };
 
-var GetQueueDetailsFilterByClassTypeCategory = function (logkey, company, tenant, reqclass, reqtype, reqcategory, callback) {
-    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + reqclass, "type_" + reqtype, "category_" + reqcategory];
+var GetQueueDetailsFilterByClassTypeCategory = function (logkey, company, tenant, reqServer, reqType, callback) {
+    var searchTags = ["company_" + company, "tenant_" + tenant, "serverType_" + reqServer, "requestType_" + reqType];
     SearchRequestByTags(logkey, searchTags, function (err, requestlist) {
         var returnlist = [];
         if (err) {
