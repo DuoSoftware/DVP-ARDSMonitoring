@@ -20,7 +20,7 @@
 		"Port": "SYS_SQL_PORT",
 		"Host": "SYS_DATABASE_HOST",
 		"Database": "SYS_DATABASE_POSTGRES_USER"
-	}
+	},
 	
 	"Security":
     	{
