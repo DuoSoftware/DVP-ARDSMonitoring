@@ -21,4 +21,13 @@
 		"Host": "SYS_DATABASE_HOST",
 		"Database": "SYS_DATABASE_POSTGRES_USER"
 	}
+	
+	"Security":
+    	{
+        "ip": "SYS_REDIS_HOST",
+        "port": "SYS_REDIS_PORT",
+        "user": "SYS_REDIS_USER",
+        "password": "SYS_REDIS_PASSWORD"
+
+    	}
 };
