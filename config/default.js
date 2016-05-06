@@ -14,6 +14,12 @@
 		"Port": "2225",
 		"Version": "1.0.0.0"
 	},
+	"Security":{
+    		"ip" : "45.55.142.207",
+    		"port": 6389,
+    		"user": "45.55.142.207",
+    		"password": "DuoS123"
+  	},
 	"DB": {
 		"Type": "postgres",
 		"User": "duo",
