@@ -5,8 +5,8 @@
   "main": "app.js",
   "dependencies": {
     "config": "^1.19.0",
-    "dvp-ardscommon": "^1.0.12",
-    "dvp-common": "^0.0.16",
+    "dvp-ardscommon": "^1.0.43",
+    "dvp-common": "^0.1.3",
     "node-uuid": "^1.4.7",
     "restify": "^4.0.3",
     "restify-jwt": "^0.4.0",
