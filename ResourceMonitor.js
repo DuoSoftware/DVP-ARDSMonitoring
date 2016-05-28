@@ -10,11 +10,11 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
         }
         else {
             var returnlist = [];
-            if (requestlist.length > 0) {
-                callback(null, returnlist);
+            if (resourcelist.length > 0) {
+                callback(null, resourcelist);
             }
             else {
-                callback(null, returnlist);
+                callback(null, resourcelist);
             }
         }
     });
