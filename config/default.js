@@ -1,8 +1,9 @@
 ﻿module.exports = {
 	"Redis":{
-		"redisip":"104.131.105.222",
-		"redisport":6379,
-		"redisdb":6
+		"redisip":"45.55.142.207",
+		"redisport":6389,
+		"redisdb":6,
+		"password":"DuoS123"
 	},
 	"Services" : {
 		"routingServiceHost": "localhost",
@@ -27,5 +28,10 @@
 		"Port": 5432,
 		"Host": "104.131.105.222",
 		"Database": "dvpdb"
+	},
+	"Security": {
+		"ip" : "45.55.142.207",
+		"port": 6389,
+		"password":"DuoS123"
 	}
 };
