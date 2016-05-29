@@ -35,6 +35,14 @@ var ProcessResourceData = function(logkey,resource, callback){
 
     //return (e);
 };
+
+var GetResourceStatus = function(logkey,resource, callback){
+    var statusKey = util.format("ResourceState:%d:%d:%d", resource.Company, resource.Tenant, resource.ResourceId);
+    redisHandler.GetObj(logkey,statusKey,function(sErr,sResult){
+        resource.Status = JSON.parse(sResult);
+        callback(resource);
+    });
+};
 var ProcessCsData = function(logkey, concurrencyInfo, callback){
     var csTags = ["company_" + concurrencyInfo.Company.toString(), "tenant_" + concurrencyInfo.Tenant.toString(),"handlingType_"+concurrencyInfo.HandlingType, "resourceid_"+concurrencyInfo.ResourceId,"objtype_CSlotInfo"];
     redisHandler.SearchObj_T(logkey,csTags,function(csErr, csResult){
@@ -77,12 +85,14 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
             var count = 0;
             for(var i in resourcelist){
                 var resource = resourcelist[i].Obj;
-                ProcessResourceData(logkey,resource, function(tempResource){
-                    count++;
-                    tempResourceInfos.push(tempResource);
-                    if(count == resourcelist.length) {
-                        callback(null, tempResourceInfos);
-                    }
+                GetResourceStatus(logkey,resource,function(res){
+                    ProcessResourceData(logkey,res, function(tempResource){
+                        count++;
+                        tempResourceInfos.push(tempResource);
+                        if(count == resourcelist.length) {
+                            callback(null, tempResourceInfos);
+                        }
+                    });
                 });
             }
             //var pcd = ProcessResourceData(logkey,resourcelist);
