@@ -80,7 +80,7 @@ var GetAllQueueDetails = function (logkey, company, tenant, callback) {
         else {
             if (requestlist.length > 0) {
                 requestlist.reduce(function (result, o) {
-                    if (o.Status == "QUEUED") {
+                    if (o.Status == "QUEUED" && o.Status =="TRYING") {
                         var unit = o.Request.QueueId;
                         if (!(unit in returnlist)) {
                             returnlist.push(returnlist[unit] = {
