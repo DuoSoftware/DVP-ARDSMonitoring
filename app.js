@@ -11,6 +11,22 @@ var jwt = require('restify-jwt');
 var secret = require('dvp-common/Authentication/Secret.js');
 var authorization = require('dvp-common/Authentication/Authorization.js');
 
+var redis = require('redis');
+
+client1 = redis.createClient(config.Redis.redisport, config.Redis.redisip);
+client1.auth(config.Redis.password);
+client1.select(config.Redis.redisdb, redis.print);
+//client.select(config.Redis.redisdb, function () { /* ... */ });
+client1.on("error", function (err) {
+    infoLogger.DetailLogger.log('error', 'Redis connection error :: %s', err);
+    console.log("Error " + err);
+});
+
+client1.on("connect", function (err) {
+    client1.select(8, redis.print);
+});
+
+
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
     version: '1.0.0'
@@ -212,6 +228,49 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',
                     res.end(jsonString);
                 }
             });
+    } catch (ex2) {
+        var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
+        res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+        res.end(jsonString);
+    }
+    return next();
+});
+
+
+server.get('/DashboardEvent/TotalCount/:window/:param1/:param2',authorization({resource:"resource", action:"read"}), function (req, res, next) {
+    try {
+        var company = req.user.company;
+        var tenant = req.user.tenant;
+        var data = req.params;
+
+        var totalSearch = util.format("TOTALCOUNT:%d:%d:%s:%s:%s", tenant, company, data["window"], data["param1"], data["param2"]);
+        client1.keys(totalSearch, function (err, replies) {
+            if (err) {
+                callback(err, replies);
+            } else {
+                console.log(replies.length + " replies:");
+                if (replies.length > 0) {
+                    var temptotal1 = 0;
+                    var count = 0;
+                    for(var i in replies){
+                        client1.get(replies[i], function(err, result){
+                            count++;
+                            if(err){
+                                console.log(err);
+                            }else{
+                               var count1= parseInt(result);
+                                temptotal1 = temptotal1+ count1;
+                            }
+                            if(count == replies.length){
+                                res.end(temptotal1.toString());
+                            }
+                        });
+                    }
+                } else {
+                    res.end(0);
+                }
+            }
+        });
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
