@@ -181,6 +181,11 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
 
                         var summary = {};
                         if (queue) {
+                            var summaryDate = FilterObjFromArray(DailySummary, "Date", queue.SummaryDate.toDateString());
+                            if(!summaryDate){
+                                summaryDate = {Date: queue.SummaryDate.toDateString(), Summary: []};
+                                DailySummary.push(summaryDate);
+                            }
                             summary.Queue = queue.Param1;
                             summary.Date = queue.SummaryDate;
                             summary.TotalQueued = queue.TotalCount;
@@ -199,7 +204,7 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
                                 summary.QueueDropped = queueDropped.TotalCount;
                             }
 
-                            DailySummary.push(summary);
+                            summaryDate.Summary.push(summary);
                         }
                     }
                 }

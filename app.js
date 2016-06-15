@@ -222,7 +222,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/:summaryFromDate/:summaryToDate', authorization({
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/from/:summaryFromDate/to/:summaryToDate', authorization({
     resource: "queue",
     action: "read"
 }), function (req, res, next) {
