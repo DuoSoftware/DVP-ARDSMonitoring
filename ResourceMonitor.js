@@ -43,6 +43,7 @@ var GetResourceStatus = function(logkey,resource, callback){
         callback(resource);
     });
 };
+
 var ProcessCsData = function(logkey, concurrencyInfo, callback){
     var csTags = ["company_" + concurrencyInfo.Company.toString(), "tenant_" + concurrencyInfo.Tenant.toString(),"handlingType_"+concurrencyInfo.HandlingType, "resourceid_"+concurrencyInfo.ResourceId,"objtype_CSlotInfo"];
     redisHandler.SearchObj_T(logkey,csTags,function(csErr, csResult){
@@ -50,6 +51,7 @@ var ProcessCsData = function(logkey, concurrencyInfo, callback){
         callback(concurrencyInfo);
     });
 };
+
 var ProcessConcurrencyData = function(logkey,concurrencyInfos){
     var e = new EventEmitter();
     process.nextTick(function () {
@@ -74,6 +76,7 @@ var ProcessConcurrencyData = function(logkey,concurrencyInfos){
 
     return (e);
 };
+
 var SearchResourceByTags = function (logkey, searchTags, callback) {
     resourceHandler.SearchResourcebyTags(logkey, searchTags, function (err, resourcelist) {
         if (err) {

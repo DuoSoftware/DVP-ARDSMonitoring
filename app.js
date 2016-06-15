@@ -10,6 +10,7 @@ var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJ
 var jwt = require('restify-jwt');
 var secret = require('dvp-common/Authentication/Secret.js');
 var authorization = require('dvp-common/Authentication/Authorization.js');
+var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
@@ -90,6 +91,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests/:serverType/:requestType'
     }
     return next();
 });
+
 
 server.get('/DVP/API/:version/ARDS/MONITORING/queues',authorization({resource:"queue", action:"read"}), function (req, res, next) {
     try {
@@ -215,6 +217,29 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',
     } catch (ex2) {
         var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
         res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+        res.end(jsonString);
+    }
+    return next();
+});
+
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/:summaryFromDate/:summaryToDate', authorization({
+    resource: "queue",
+    action: "read"
+}), function (req, res, next) {
+    try {
+
+        logger.info('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant;
+        var companyId = req.user.company;
+        requsetMonitor.GetDailySummaryRecords(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
+    }
+    catch (ex) {
+        logger.error('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
+        logger.debug('[QueueSummaryHandler.GetDailySummaryRecords] - Request response : %s ', jsonString);
         res.end(jsonString);
     }
     return next();
