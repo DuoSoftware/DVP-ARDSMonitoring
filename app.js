@@ -28,7 +28,7 @@ var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
 
-server.get('/DVP/API/:version/ARDS/MONITORING/requests',authorization({resource:"request", action:"read"}), function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests',authorization({resource:"ardsrequest", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
             var tenant = req.user.tenant;
@@ -60,7 +60,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests',authorization({resource:
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/requests/:serverType/:requestType',authorization({resource:"read", action:"write"}), function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/requests/:serverType/:requestType',authorization({resource:"ardsrequest", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
             var tenant = req.user.tenant;
@@ -158,7 +158,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues/:serverType/:requestType',a
 });
 
 
-server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"resource", action:"read"}), function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
             var tenant = req.user.tenant;
@@ -190,7 +190,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource
     return next();
 });
 
-server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',authorization({resource:"resource", action:"read"}), function (req, res, next) {
+server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
             var tenant = req.user.tenant;
