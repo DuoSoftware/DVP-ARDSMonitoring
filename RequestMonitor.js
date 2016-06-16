@@ -191,11 +191,12 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
                             summary.TotalQueued = queue.TotalCount;
                             summary.TotalQueueTime = queue.TotalTime;
                             summary.MaxTime = queue.MaxTime;
-                            summary.Threshold = queue.ThresholdValue;
                             summary.QueueAnswered = 0;
                             summary.QueueDropped = 0;
                             if (summary.TotalQueued > 0) {
                                 summary.AverageQueueTime = summary.TotalQueueTime / summary.TotalQueued;
+                                var sla = ((summary.TotalQueued - summary.Threshold) / summary.TotalQueued) * 100;
+                                summary.SLA = sla;
                             }
                             if (queueAnswered) {
                                 summary.QueueAnswered = queueAnswered.TotalCount;
