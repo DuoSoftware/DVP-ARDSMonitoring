@@ -6,6 +6,7 @@
 		"redisdb":"SYS_REDIS_DB"
 	},
 	"Services" : {
+		"accessToken": "HOST_TOKEN",
 		"routingServiceHost": "SYS_ARDSLITEROUTINGENGINE_HOST",
 		"routingServicePort": "SYS_ARDSLITEROUTINGENGINE_PORT",
 		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION"

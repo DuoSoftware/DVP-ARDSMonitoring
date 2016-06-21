@@ -157,6 +157,35 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queues/:serverType/:requestType',a
     return next();
 });
 
+server.get('/DVP/API/:version/ARDS/MONITORING/queueName/:queueId',authorization({resource:"queue", action:"read"}), function (req, res, next) {
+    try {
+        var objkey = util.format('request-getallQueuename: %s', req.params.queueId);
+        var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
+
+        infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
+        infoLogger.ReqResLogger.log('info', '%s Start- getQueueName #', logkey, {request: req.params});
+        requsetMonitor.GenerateQueueName(logkey, req.params.queueId, function (err, result) {
+            if (err) {
+                infoLogger.ReqResLogger.log('error', '%s End- rgetQueueName :: Error: %s #', logkey, err);
+                var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
+                res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+            else {
+                infoLogger.ReqResLogger.log('info', '%s End- getQueueName :: Result: %s #', logkey, 'success');
+                var jsonString = messageFormatter.FormatMessage(err, "get getQueueName success", true, result);
+                res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+        });
+    } catch (ex2) {
+        var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
+        res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+        res.end(jsonString);
+    }
+    return next();
+});
+
 
 server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
     try {

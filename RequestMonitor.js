@@ -1,10 +1,10 @@
 ﻿var util = require('util');
-var EventEmiter = require('events').EventEmitter;
+var EventEmitter = require('events').EventEmitter;
 var requestHandler = require('dvp-ardscommon/RequestHandler.js');
 var dbConn = require('dvp-dbmodels');
 var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
-var request = require('request');
+var redisHandler = require('dvp-ardscommon/RedisHandler.js');
 
 var SplitAndGetStatus = function (logKey, requestlist) {
     var e = new EventEmiter();
@@ -136,7 +136,7 @@ var GetQueueDetailsFilterByClassTypeCategory = function (logkey, company, tenant
     });
 };
 
-function FilterObjFromArray(itemArray, field, value){
+var FilterObjFromArray = function(itemArray, field, value){
     var resultObj;
     for(var i in itemArray){
         var item = itemArray[i];
@@ -146,7 +146,69 @@ function FilterObjFromArray(itemArray, field, value){
         }
     }
     return resultObj;
-}
+};
+
+var GenerateQueueName = function(logKey, queueId, callback){
+    redisHandler.GetHashValue(logKey, "QueueNameHash", queueId, function(err, name){
+        if(err){
+            callback(err, null);
+        }else{
+            callback(null, name);
+        }
+    });
+};
+
+var SetQueueName = function(summary, callback){
+    redisHandler.GetHashValue("GetQueueName", "QueueNameHash", summary.Queue, function(err, name){
+        if(err){
+            callback(summary);
+        }else{
+            if(name) {
+                summary.Queue = name;
+            }
+            callback(summary);
+        }
+    });
+};
+
+var ExtractSummary = function(date, summaries){
+    var e = new EventEmitter();
+    process.nextTick(function () {
+        var count = 0;
+        var newSummaries = [];
+        for(var i in summaries){
+            SetQueueName(summaries[i], function(newSummary){
+                count++;
+                newSummaries.push(newSummary);
+                if(count == summaries.length){
+                    e.emit('endSummary', date, newSummaries);
+                }
+            });
+        }
+    });
+
+    return (e);
+};
+
+var ExtractDailySummary = function(dailySummary, callback){
+    //var e = new EventEmitter();
+    //process.nextTick(function () {
+        var count = 0;
+        var newDailySummary = [];
+        for(var i in dailySummary){
+            var es = ExtractSummary(dailySummary[i].Date, dailySummary[i].Summary);
+            es.on('endSummary', function(date ,summary){
+                count++;
+                newDailySummary.push({Date: date, Summary: summary});
+                if(count == dailySummary.length){
+                    callback(newDailySummary);
+                }
+            });
+        }
+    //});
+
+    //return (e);
+};
 
 var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryToDate, callback){
     dbConn.SequelizeConn.query("SELECT * FROM \"Dashboard_DailySummaries\" WHERE \"Company\" = '"+company+"' and \"Tenant\" = '"+tenant+"' and \"SummaryDate\"::date >= date '"+summaryFromDate+"' and \"SummaryDate\"::date <= date '"+summaryToDate+"' and \"WindowName\" in (SELECT \"WindowName\"	FROM \"Dashboard_DailySummaries\"	WHERE \"WindowName\" = 'QUEUE' or \"WindowName\" = 'QUEUEDROPPED' or \"WindowName\" = 'QUEUEANSWERED')", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
@@ -186,6 +248,7 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
                                 summaryDate = {Date: queue.SummaryDate.toDateString(), Summary: []};
                                 DailySummary.push(summaryDate);
                             }
+
                             summary.Queue = queue.Param1;
                             summary.Date = queue.SummaryDate;
                             summary.TotalQueued = queue.TotalCount;
@@ -210,9 +273,11 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
                     }
                 }
 
-                var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, DailySummary);
+                ExtractDailySummary(DailySummary, function(dailySummaryWithQueueName){
+                    var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, dailySummaryWithQueueName);
+                    callback.end(jsonString);
+                });
 
-                callback.end(jsonString);
             }
             else {
                 logger.error('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
@@ -232,3 +297,4 @@ module.exports.GetRequestFilterByClassTypeCategory = GetRequestFilterByClassType
 module.exports.GetAllQueueDetails = GetAllQueueDetails;
 module.exports.GetQueueDetailsFilterByClassTypeCategory = GetQueueDetailsFilterByClassTypeCategory;
 module.exports.GetDailySummaryRecords = GetDailySummaryRecords;
+module.exports.GenerateQueueName = GenerateQueueName;
