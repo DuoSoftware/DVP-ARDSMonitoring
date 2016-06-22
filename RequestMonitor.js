@@ -159,7 +159,9 @@ var GenerateQueueName = function(logKey, queueId, callback){
 };
 
 var SetQueueName = function(summary, callback){
-    redisHandler.GetHashValue("GetQueueName", "QueueNameHash", summary.Queue, function(err, name){
+    var qArray =  summary.Queue.split("-");
+    var qId = util.format("%s",qArray.join(":"))
+    redisHandler.GetHashValue("GetQueueName", "QueueNameHash", qId, function(err, name){
         if(err){
             callback(summary);
         }else{
@@ -213,7 +215,7 @@ var ExtractDailySummary = function(dailySummary, callback){
 var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryToDate, callback){
     dbConn.SequelizeConn.query("SELECT * FROM \"Dashboard_DailySummaries\" WHERE \"Company\" = '"+company+"' and \"Tenant\" = '"+tenant+"' and \"SummaryDate\"::date >= date '"+summaryFromDate+"' and \"SummaryDate\"::date <= date '"+summaryToDate+"' and \"WindowName\" in (SELECT \"WindowName\"	FROM \"Dashboard_DailySummaries\"	WHERE \"WindowName\" = 'QUEUE' or \"WindowName\" = 'QUEUEDROPPED' or \"WindowName\" = 'QUEUEANSWERED')", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
-            if (records) {
+            if (records && records.length >0) {
                 logger.info('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
                 var Queues = [];
                 for(var i in records){
@@ -281,7 +283,7 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
             }
             else {
                 logger.error('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
-                var jsonString = messageFormatter.FormatMessage(new Error('No record'), "EXCEPTION", false, undefined);
+                var jsonString = messageFormatter.FormatMessage(new Error('No record'), "No records found", false, undefined);
                 callback.end(jsonString);
             }
         }).error(function (err) {
