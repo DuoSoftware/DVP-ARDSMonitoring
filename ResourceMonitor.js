@@ -86,17 +86,21 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
         else {
             var tempResourceInfos = [];
             var count = 0;
-            for(var i in resourcelist){
-                var resource = resourcelist[i].Obj;
-                GetResourceStatus(logkey,resource,function(res){
-                    ProcessResourceData(logkey,res, function(tempResource){
-                        count++;
-                        tempResourceInfos.push(tempResource);
-                        if(count == resourcelist.length) {
-                            callback(null, tempResourceInfos);
-                        }
+            if(resourcelist && resourcelist.length >0) {
+                for (var i in resourcelist) {
+                    var resource = resourcelist[i].Obj;
+                    GetResourceStatus(logkey, resource, function (res) {
+                        ProcessResourceData(logkey, res, function (tempResource) {
+                            count++;
+                            tempResourceInfos.push(tempResource);
+                            if (count == resourcelist.length) {
+                                callback(null, tempResourceInfos);
+                            }
+                        });
                     });
-                });
+                }
+            }else{
+                callback(null, tempResourceInfos);
             }
             //var pcd = ProcessResourceData(logkey,resourcelist);
             //pcd.on('resourceInfo', function (obj) {
