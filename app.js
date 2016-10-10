@@ -251,6 +251,39 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resources/:class/:type/:category',
     return next();
 });
 
+server.post('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
+    try {
+        var company = req.user.company;
+        var tenant = req.user.tenant;
+        var data = req.params;
+        var objkey = util.format('resource-GetResourcesBySkills:company_%s:tenant_%s', company, tenant);
+        var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
+
+        infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
+        infoLogger.ReqResLogger.log('info', '%s Start- resource/GetResourcesBySkills #', logkey, req.body);
+        resourceMonitor.GetResourcesBySkills(logkey, company, tenant, req.body.skills, function (err, result) {
+            if (err) {
+                infoLogger.ReqResLogger.log('error', '%s End- resource/GetResourcesBySkills :: Error: %s #', logkey, err);
+                var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
+                res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+            else {
+                infoLogger.ReqResLogger.log('info', '%s End- resource/GetResourcesBySkills :: Result: %s #', logkey, 'success');
+                var jsonString = messageFormatter.FormatMessage(err, "get resources success", true, result);
+                res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+        });
+    } catch (ex2) {
+        var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
+        res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+        res.end(jsonString);
+    }
+    return next();
+});
+
+
 server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/from/:summaryFromDate/to/:summaryToDate', authorization({
     resource: "queue",
     action: "read"

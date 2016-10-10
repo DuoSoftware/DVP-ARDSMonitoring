@@ -2,6 +2,7 @@
 var EventEmitter = require('events').EventEmitter;
 var resourceHandler = require('dvp-ardscommon/ResourceHandler.js');
 var redisHandler = require('dvp-ardscommon/RedisHandler.js');
+var commonMethods = require('dvp-ardscommon/CommonMethods');
 
 var ProcessResourceData = function(logkey,resource, callback){
     //var e = new EventEmitter();
@@ -78,7 +79,7 @@ var ProcessConcurrencyData = function(logkey,concurrencyInfos){
 };
 
 var SearchResourceByTags = function (logkey, searchTags, callback) {
-    resourceHandler.SearchResourcebyTags(logkey, searchTags, function (err, resourcelist) {
+    redisHandler.SearchObj_V_T(logkey, searchTags, function (err, result) {
         if (err) {
             console.log(err);
             callback(err, []);
@@ -86,14 +87,14 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
         else {
             var tempResourceInfos = [];
             var count = 0;
-            if(resourcelist && resourcelist.length >0) {
-                for (var i in resourcelist) {
-                    var resource = resourcelist[i].Obj;
+            if(result && result.length >0) {
+                for (var i in result) {
+                    var resource = result[i].Obj;
                     GetResourceStatus(logkey, resource, function (res) {
                         ProcessResourceData(logkey, res, function (tempResource) {
                             count++;
                             tempResourceInfos.push(tempResource);
-                            if (count == resourcelist.length) {
+                            if (count == result.length) {
                                 callback(null, tempResourceInfos);
                             }
                         });
@@ -102,26 +103,32 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
             }else{
                 callback(null, tempResourceInfos);
             }
-            //var pcd = ProcessResourceData(logkey,resourcelist);
-            //pcd.on('resourceInfo', function (obj) {
-            //    tempResourceInfos.push(obj);
-            //});
-            //pcd.on('endResourceInfo', function () {
-            //    callback(null, tempResourceInfos);
-            //});
         }
     });
 };
 
 var GetAllResources = function (logkey, company, tenant, callback) {
-    var searchTags = ["company_" + company, "tenant_" + tenant];
+    var searchTags = ["company_" + company, "tenant_" + tenant, "objtype_Resource"];
+    SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
+        callback(err, returnlist);
+    });
+};
+
+var GetResourcesBySkills = function (logkey, company, tenant, skills, callback) {
+    var searchTags = ["company_" + company, "tenant_" + tenant, "objtype_Resource"];
+    var sortedAttributes = commonMethods.sortData(skills);
+    for (var k in sortedAttributes) {
+        searchTags.push("attribute_" + sortedAttributes[k]);
+    }
+
+
     SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
         callback(err, returnlist);
     });
 };
 
 var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, resClass, resType, resCategory, callback) {
-    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + resClass, "type_" + resType, "category_" + resCategory];
+    var searchTags = ["company_" + company, "tenant_" + tenant, "class_" + resClass, "type_" + resType, "category_" + resCategory, "objtype_Resource"];
     SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
         callback(err, returnlist);
     });
@@ -129,3 +136,4 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
 
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
+module.exports.GetResourcesBySkills = GetResourcesBySkills;
