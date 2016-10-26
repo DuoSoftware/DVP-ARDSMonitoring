@@ -160,7 +160,7 @@ var GenerateQueueName = function(logKey, queueId, callback){
 
 var SetQueueName = function(summary, callback){
     var qArray =  summary.Queue.split("-");
-    var qId = util.format("%s",qArray.join(":"))
+    var qId = util.format("%s",qArray.join(":"));
     redisHandler.GetHashValue("GetQueueName", "QueueNameHash", qId, function(err, name){
         if(err){
             callback(summary);
@@ -293,6 +293,37 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
         });
 };
 
+var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, callback){
+    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
+        .then(function(records) {
+            if (records && records.length >0) {
+                logger.info('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
+                var count = 0;
+                var newSummaries = [];
+                for(var i in records){
+                    SetQueueName(records[i], function(newSummary){
+                        count++;
+                        newSummaries.push(newSummary);
+                        if(count == records.length){
+                            var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
+                            callback.end(jsonString);
+                        }
+                    });
+                }
+
+            }
+            else {
+                logger.error('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
+                var jsonString = messageFormatter.FormatMessage(new Error('No record'), "No records found", false, undefined);
+                callback.end(jsonString);
+            }
+        }).error(function (err) {
+            logger.error('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+            var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
+            callback.end(jsonString);
+        });
+};
+
 module.exports.GetAllRequests = GetAllRequests;
 module.exports.GetRequestFilterByClassTypeCategory = GetRequestFilterByClassTypeCategory;
 
@@ -300,3 +331,4 @@ module.exports.GetAllQueueDetails = GetAllQueueDetails;
 module.exports.GetQueueDetailsFilterByClassTypeCategory = GetQueueDetailsFilterByClassTypeCategory;
 module.exports.GetDailySummaryRecords = GetDailySummaryRecords;
 module.exports.GenerateQueueName = GenerateQueueName;
+module.exports.GetQueueSlaBreakDownRecords = GetQueueSlaBreakDownRecords;

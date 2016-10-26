@@ -307,6 +307,29 @@ server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/from/:summaryFromDat
     return next();
 });
 
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaBreakDown/date/:summaryDate', authorization({
+    resource: "queue",
+    action: "read"
+}), function (req, res, next) {
+    try {
+
+        logger.info('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant;
+        var companyId = req.user.company;
+        requsetMonitor.GetQueueSlaBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
+    }
+    catch (ex) {
+        logger.error('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
+        logger.debug('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - Request response : %s ', jsonString);
+        res.end(jsonString);
+    }
+    return next();
+});
+
 server.listen(hostPort, function () {
     console.log('%s listening at %s', server.name, server.url);
 });
