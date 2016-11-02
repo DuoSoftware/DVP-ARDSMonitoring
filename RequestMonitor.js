@@ -294,7 +294,7 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
 };
 
 var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, callback){
-    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
+    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"ThresholdValue\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
                 logger.info('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
