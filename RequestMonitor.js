@@ -303,6 +303,9 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, cal
                 for(var i in records){
                     SetQueueName(records[i], function(newSummary){
                         count++;
+                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
+                            newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                        }
                         newSummaries.push(newSummary);
                         if(count == records.length){
                             var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
