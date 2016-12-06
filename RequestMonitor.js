@@ -6,6 +6,7 @@ var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJ
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 var redisHandler = require('dvp-ardscommon/RedisHandler.js');
 
+
 var SplitAndGetStatus = function (logKey, requestlist) {
     var e = new EventEmiter();
     process.nextTick(function () {
@@ -138,7 +139,7 @@ var GetQueueDetailsFilterByClassTypeCategory = function (logkey, company, tenant
 
 var FilterObjFromArray = function(itemArray, field, value){
     var resultObj;
-    for(var i in itemArray){
+    for(var i = 0; i< itemArray.length;i++){
         var item = itemArray[i];
         if(item[field] == value){
             resultObj = item;
@@ -293,11 +294,11 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
         });
 };
 
-var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, callback){
-    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"ThresholdValue\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
+var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDate, callback){
+    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
-                logger.info('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
+                logger.info('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
                 var count = 0;
                 var newSummaries = [];
                 for(var i in records){
@@ -316,12 +317,63 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, cal
 
             }
             else {
-                logger.error('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
+                logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
                 var jsonString = messageFormatter.FormatMessage(new Error('No record'), "No records found", false, undefined);
                 callback.end(jsonString);
             }
         }).error(function (err) {
-            logger.error('[DVP-ARDSMonitoring.GetQueueSlaBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+            logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+            var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
+            callback.end(jsonString);
+        });
+};
+
+var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, callback){
+    dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
+        .then(function(records) {
+            if (records && records.length >0) {
+                logger.info('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
+                var count = 0;
+                var newSummaries = [];
+                for(var i in records){
+                    SetQueueName(records[i], function(newSummary){
+                        count++;
+                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
+                            newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                        }
+
+                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
+                            newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                        }
+
+                        var queue = FilterObjFromArray(newSummaries, 'Queue', newSummary.Queue);
+                        if(queue){
+                            var timeRange = FilterObjFromArray(newSummaries, 'BreakDown', newSummary.BreakDown);
+                            if(timeRange){
+                                timeRange.ThresholdCount = timeRange.ThresholdCount + newSummary.ThresholdCount;
+                                timeRange.Average = (timeRange.ThresholdCount / timeRange.TotalCount)*100;
+                            }else{
+                                newSummaries.push(newSummary);
+                            }
+                        }else{
+                            newSummaries.push(newSummary);
+                        }
+
+                        if(count == records.length){
+                            var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
+                            callback.end(jsonString);
+                        }
+                    });
+                }
+
+            }
+            else {
+                logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
+                var jsonString = messageFormatter.FormatMessage(new Error('No record'), "No records found", false, undefined);
+                callback.end(jsonString);
+            }
+        }).error(function (err) {
+            logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
             var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
             callback.end(jsonString);
         });
@@ -334,4 +386,5 @@ module.exports.GetAllQueueDetails = GetAllQueueDetails;
 module.exports.GetQueueDetailsFilterByClassTypeCategory = GetQueueDetailsFilterByClassTypeCategory;
 module.exports.GetDailySummaryRecords = GetDailySummaryRecords;
 module.exports.GenerateQueueName = GenerateQueueName;
+module.exports.GetQueueSlaHourlyBreakDownRecords = GetQueueSlaHourlyBreakDownRecords;
 module.exports.GetQueueSlaBreakDownRecords = GetQueueSlaBreakDownRecords;
