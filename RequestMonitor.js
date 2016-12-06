@@ -307,6 +307,11 @@ var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDat
                         if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
                             newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
                         }
+
+                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
+                            newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                        }
+
                         newSummaries.push(newSummary);
                         if(count == records.length){
                             var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
