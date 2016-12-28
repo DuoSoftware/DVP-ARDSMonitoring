@@ -3,9 +3,10 @@
 		"redisip":"SYS_REDIS_HOST",
 		"redisport":"SYS_REDIS_PORT",
 		"password":"SYS_REDIS_PASSWORD",
-		"redisdb":"SYS_REDIS_DB"
+		"redisdb":"SYS_REDIS_DB_ARDS"
 	},
 	"Services" : {
+		"accessToken": "HOST_TOKEN",
 		"routingServiceHost": "SYS_ARDSLITEROUTINGENGINE_HOST",
 		"routingServicePort": "SYS_ARDSLITEROUTINGENGINE_PORT",
 		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION"
