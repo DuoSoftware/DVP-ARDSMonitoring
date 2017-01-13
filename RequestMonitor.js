@@ -394,6 +394,8 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, cal
         });
 };
 
+
+
 module.exports.GetAllRequests = GetAllRequests;
 module.exports.GetRequestFilterByClassTypeCategory = GetRequestFilterByClassTypeCategory;
 
