@@ -190,8 +190,100 @@ var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, 
     }
 };
 
+var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback)
+{
+    var emptyArr = [];
+    try
+    {
+        var rejectSessionQuery = {
+            attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'SessionId']],
+            where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}],
+            offset: ((pageNo - 1) * rowCount),
+            limit: rowCount
+        };
+
+
+
+
+        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessionList)
+        {
+            var sessionIdList = [];
+            rejectSessionList.forEach(function(session){
+                if(session && session.dataValues && session.dataValues.SessionId) {
+                    sessionIdList.push(session.dataValues.SessionId);
+                }
+            });
+
+            var rejectDetailQuery = {
+                attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                where : [{SessionId: {$in:sessionIdList}}],
+                group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData']
+            };
+
+            dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
+            {
+                callback(null, resourceRejectList)
+
+            }).catch(function(err)
+            {
+                callback(err, emptyArr)
+            });
+
+        }).catch(function(err)
+        {
+            callback(err, emptyArr)
+        });
+
+
+
+
+    }
+    catch(ex)
+    {
+        callback(ex, emptyArr);
+    }
+};
+
+
+var GetResourceRejectCount = function(startTime, endTime, resourceId, companyId, tenantId, callback)
+{
+    try
+    {
+        var rejectSessionQuery = {
+            attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'TotalRejectedSessions']],
+            where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}]
+        };
+
+
+
+
+        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessions)
+        {
+            if(rejectSessions){
+                callback(null, rejectSessions.length)
+            }else {
+                callback(null, 0);
+            }
+
+        }).catch(function(err)
+        {
+            callback(err, 0)
+        });
+
+
+
+
+    }
+    catch(ex)
+    {
+        callback(ex, 0);
+    }
+};
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
 module.exports.GetResourceStatusDurationList = GetResourceStatusDurationList;
 module.exports.GetResourceStatusDurationSummery = GetResourceStatusDurationSummery;
+module.exports.GetResourceRejectSummery = GetResourceRejectSummery;
+module.exports.GetResourceRejectCount = GetResourceRejectCount;

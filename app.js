@@ -28,6 +28,8 @@ var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
 
+//--------------------------Request Monitoring---------------------------------------
+
 server.get('/DVP/API/:version/ARDS/MONITORING/requests',authorization({resource:"ardsrequest", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
@@ -93,6 +95,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/requests/:serverType/:requestType'
 });
 
 
+//--------------------------Queue Monitoring-----------------------------------------
 server.get('/DVP/API/:version/ARDS/MONITORING/queues',authorization({resource:"queue", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
@@ -186,7 +189,77 @@ server.get('/DVP/API/:version/ARDS/MONITORING/queueName/:queueId',authorization(
     return next();
 });
 
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/from/:summaryFromDate/to/:summaryToDate', authorization({
+    resource: "queue",
+    action: "read"
+}), function (req, res, next) {
+    try {
 
+        logger.info('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant;
+        var companyId = req.user.company;
+        requsetMonitor.GetDailySummaryRecords(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
+    }
+    catch (ex) {
+        logger.error('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
+        logger.debug('[QueueSummaryHandler.GetDailySummaryRecords] - Request response : %s ', jsonString);
+        res.end(jsonString);
+    }
+    return next();
+});
+
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaHourlyBreakDown/date/:summaryDate', authorization({
+    resource: "queue",
+    action: "read"
+}), function (req, res, next) {
+    try {
+
+        logger.info('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant;
+        var companyId = req.user.company;
+        requsetMonitor.GetQueueSlaHourlyBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
+    }
+    catch (ex) {
+        logger.error('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
+        logger.debug('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - Request response : %s ', jsonString);
+        res.end(jsonString);
+    }
+    return next();
+});
+
+server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaBreakDown/date/:summaryDate', authorization({
+    resource: "queue",
+    action: "read"
+}), function (req, res, next) {
+    try {
+
+        logger.info('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant;
+        var companyId = req.user.company;
+        requsetMonitor.GetQueueSlaBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
+    }
+    catch (ex) {
+        logger.error('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
+        logger.debug('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - Request response : %s ', jsonString);
+        res.end(jsonString);
+    }
+    return next();
+});
+
+
+//--------------------------Resource Monitoring-------------------------------------
 server.get('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
     try {
             var company = req.user.company;
@@ -283,81 +356,7 @@ server.post('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resourc
     return next();
 });
 
-
-server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/Summary/from/:summaryFromDate/to/:summaryToDate', authorization({
-    resource: "queue",
-    action: "read"
-}), function (req, res, next) {
-    try {
-
-        logger.info('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
-
-        if (!req.user ||!req.user.tenant || !req.user.company)
-            throw new Error("invalid tenant or company.");
-        var tenantId = req.user.tenant;
-        var companyId = req.user.company;
-        requsetMonitor.GetDailySummaryRecords(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
-    }
-    catch (ex) {
-        logger.error('[QueueSummaryHandler.GetDailySummaryRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
-        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
-        logger.debug('[QueueSummaryHandler.GetDailySummaryRecords] - Request response : %s ', jsonString);
-        res.end(jsonString);
-    }
-    return next();
-});
-
-
-server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaHourlyBreakDown/date/:summaryDate', authorization({
-    resource: "queue",
-    action: "read"
-}), function (req, res, next) {
-    try {
-
-        logger.info('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
-
-        if (!req.user ||!req.user.tenant || !req.user.company)
-            throw new Error("invalid tenant or company.");
-        var tenantId = req.user.tenant;
-        var companyId = req.user.company;
-        requsetMonitor.GetQueueSlaHourlyBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
-    }
-    catch (ex) {
-        logger.error('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
-        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
-        logger.debug('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - Request response : %s ', jsonString);
-        res.end(jsonString);
-    }
-    return next();
-});
-
-
-server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaBreakDown/date/:summaryDate', authorization({
-    resource: "queue",
-    action: "read"
-}), function (req, res, next) {
-    try {
-
-        logger.info('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
-
-        if (!req.user ||!req.user.tenant || !req.user.company)
-            throw new Error("invalid tenant or company.");
-        var tenantId = req.user.tenant;
-        var companyId = req.user.company;
-        requsetMonitor.GetQueueSlaBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
-    }
-    catch (ex) {
-        logger.error('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
-        var jsonString = messageFormatter.FormatMessage(ex, "EXCEPTION", false, undefined);
-        logger.debug('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - Request response : %s ', jsonString);
-        res.end(jsonString);
-    }
-    return next();
-});
-
-
-server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:rowCount', jwt({secret: secret.Secret}), authorization({resource:"ardsresource", action:"read"}), function(req, res, next)
-{
+server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:rowCount', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
     var emptyArr = [];
     try
     {
@@ -398,9 +397,10 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
     return next();
 });
 
-
-server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId', jwt({secret: secret.Secret}), authorization({resource:"ardsresource", action:"read"}), function(req, res, next)
-{
+server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId', authorization({
+    resource:"ardsresource",
+    action:"read"
+}), function(req, res, next) {
     var emptyArr = [];
     try
     {
@@ -437,6 +437,86 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId',
 
     return next();
 });
+
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/:pageNo/:rowCount', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+        var resourceId = req.params.resourceId;
+
+        var pageNo =parseInt(req.params.pageNo);
+        var rowCount = parseInt(req.params.rowCount);
+
+        var companyId = req.user.company;
+        var tenantId = req.user.tenant;
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceRejectSummery] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceRejectSummery(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, function(err, resList)
+        {
+            var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
+            logger.debug('[DVP-ARDSMonitoring.GetResourceRejectSummery] - API RESPONSE : %s', jsonString);
+            res.end(jsonString);
+
+        });
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceRejectSummery] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/rejectCount', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+        var resourceId = req.params.resourceId;
+
+        var companyId = req.user.company;
+        var tenantId = req.user.tenant;
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceRejectCount(startDate, endDate, resourceId, companyId, tenantId, function(err, resList)
+        {
+            var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
+            logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - API RESPONSE : %s', jsonString);
+            res.end(jsonString);
+
+        });
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
 
 server.listen(hostPort, function () {
     console.log('%s listening at %s', server.name, server.url);
