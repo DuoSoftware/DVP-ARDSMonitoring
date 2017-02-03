@@ -4,6 +4,14 @@ var resourceHandler = require('dvp-ardscommon/ResourceHandler.js');
 var redisHandler = require('dvp-ardscommon/RedisHandler.js');
 var commonMethods = require('dvp-ardscommon/CommonMethods');
 var dbConn = require('dvp-dbmodels');
+var fileService = require('./Services/fileService');
+var cdrProcessor = require('./Services/cdrProcessor');
+var fs = require('fs');
+var json2csv = require('json2csv');
+var Promise = require('bluebird');
+var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
+var deepcopy = require('deepcopy');
+var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 
 var ProcessResourceData = function(logkey,resource, callback){
     //var e = new EventEmitter();
@@ -135,9 +143,62 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
     });
 };
 
+var FileCheckAndDelete = function(company, tenant, filename) {
+    return new Promise(function(fulfill, reject)
+    {
+        fileService.GetFileMetadata(company, tenant, filename, function(err, fileData)
+        {
+            if(fileData)
+            {
+                fileService.DeleteFile(company, tenant, fileData.UniqueId, function (err, delResp)
+                {
+                    if (err)
+                    {
+                        reject(err);
 
-var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback)
-{
+                    }
+                    else
+                    {
+                        fulfill(true);
+                    }
+
+                });
+            }
+            else
+            {
+                if(err)
+                {
+                    reject(err);
+                }
+                else
+                {
+                    fulfill(true);
+                }
+            }
+        })
+
+    })
+
+};
+
+var convertToMMSS = function (sec) {
+    var minutes = Math.floor(sec / 60);
+
+    if (minutes < 10) {
+        minutes = '0' + minutes;
+    }
+
+    var seconds = sec - minutes * 60;
+
+    if (seconds < 10) {
+        seconds = '0' + seconds;
+    }
+
+    return minutes + ':' + seconds;
+};
+
+
+var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback) {
     var emptyArr = [];
     try
     {
@@ -163,8 +224,7 @@ var GetResourceStatusDurationList = function(startTime, endTime, resourceId, com
     }
 };
 
-var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback)
-{
+var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
     var emptyArr = [];
     try
     {
@@ -190,8 +250,7 @@ var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, 
     }
 };
 
-var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback)
-{
+var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback) {
     var emptyArr = [];
     try
     {
@@ -244,9 +303,7 @@ var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyI
     }
 };
 
-
-var GetResourceRejectCount = function(startTime, endTime, resourceId, companyId, tenantId, callback)
-{
+var GetResourceRejectCount = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
     try
     {
         var rejectSessionQuery = {
@@ -280,6 +337,202 @@ var GetResourceRejectCount = function(startTime, endTime, resourceId, companyId,
     }
 };
 
+var PrepareForDownloadResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, res) {
+    var jsonString;
+    try
+    {
+        var fileName = util.format('MissedCallReport_%s.csv', resourceId);
+
+        FileCheckAndDelete(companyId, tenantId, fileName).then(function(chkResult) {
+                if(chkResult) {
+
+                    fileService.FileUploadReserve(companyId, tenantId, fileName, function(err, fileResResp)
+                    {
+                        if (err) {
+                            jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                            logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
+                            res.end(jsonString);
+                        } else {
+                            if(fileResResp) {
+                                var uniqueId = fileResResp.Result;
+
+                                //should respose end
+                                jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, fileName);
+                                logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
+                                res.end(jsonString);
+
+
+                                var rejectSessionQuery = {
+                                    attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'SessionId']],
+                                    where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}]
+                                };
+
+                                dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessionList)
+                                {
+                                    var sessionIdList = [];
+                                    rejectSessionList.forEach(function(session){
+                                        if(session && session.dataValues && session.dataValues.SessionId) {
+                                            sessionIdList.push(session.dataValues.SessionId);
+                                        }
+                                    });
+
+                                    var rejectDetailQuery = {
+                                        attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                                        where : [{SessionId: {$in:sessionIdList}}],
+                                        group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData']
+                                    };
+
+                                    dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
+                                    {
+                                        cdrProcessor.GetCdrBySessions(companyId, tenantId, sessionIdList, function (err, response) {
+                                            if (err) {
+                                                fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                    if(err) {
+                                                        logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                    }
+                                                });
+                                            } else {
+                                                if(response.IsSuccess)
+                                                {
+
+                                                    var newRecords = resourceRejectList.map(function (missedCallRecord) {
+                                                        if(response.Result) {
+                                                            for (var i = 0; i < response.Result.length; i++) {
+                                                                var cdrRecord = response.Result[i];
+                                                                if (cdrRecord.Uuid === missedCallRecord.SessionId) {
+                                                                    cdrRecord.QueueSec = convertToMMSS(cdrRecord.QueueSec);
+                                                                    if (cdrRecord.DVPCallDirection === "outbound") {
+                                                                        var oriFrom = deepcopy(cdrRecord.SipFromUser);
+                                                                        var oriTo = deepcopy(cdrRecord.SipToUser);
+                                                                        cdrRecord.SipFromUser = oriTo;
+                                                                        cdrRecord.SipToUser = oriFrom;
+                                                                    }
+                                                                    missedCallRecord.RejectCount = missedCallRecord.dataValues.RejectCount;
+                                                                    missedCallRecord.CreatedTime = cdrRecord.CreatedTime;
+                                                                    missedCallRecord.AgentSkill = cdrRecord.AgentSkill;
+                                                                    missedCallRecord.QueueSec = cdrRecord.QueueSec;
+                                                                    missedCallRecord.SipFromUser = cdrRecord.SipFromUser;
+                                                                    missedCallRecord.SipToUser = cdrRecord.SipToUser;
+                                                                    missedCallRecord.AgentAnswered = cdrRecord.AgentAnswered;
+                                                                    missedCallRecord.RecievedBy = cdrRecord.RecievedBy;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return missedCallRecord;
+                                                    });
+
+
+                                                    var tagHeaders = ['SessionId', 'Call Time', 'Skill', 'Queue Duration', 'Reject Count', 'From', 'To', 'Agent Answered', 'Received By'];
+                                                    var tagOrder = ['SessionId', 'CreatedTime', 'AgentSkill', 'QueueSec', 'RejectCount', 'SipFromUser', 'SipToUser', 'AgentAnswered', 'RecievedBy'];
+
+
+                                                    var csvFileData = json2csv({ data: newRecords, fields: tagOrder, fieldNames : tagHeaders });
+
+                                                    fs.writeFile(fileName, csvFileData, function(err) {
+                                                        if (err) {
+                                                            fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                                if(err) {
+                                                                    logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                                }
+                                                            });
+                                                        } else {
+
+                                                            var formData = {
+                                                                class: 'MISSEDCALL',
+                                                                fileCategory:'REPORTS',
+                                                                display: fileName,
+                                                                filename: fileName,
+                                                                attachments: [
+                                                                    fs.createReadStream(fileName)
+                                                                ]
+
+                                                            };
+
+                                                            fileService.UploadFile(companyId, tenantId, uniqueId, formData, function(err, uploadResp) {
+                                                                fs.unlink(fileName);
+                                                                if(!err && uploadResp) {
+
+                                                                } else {
+                                                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                                        if(err) {
+                                                                            logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                                        }
+                                                                    });
+                                                                }
+
+                                                            });
+
+                                                        }
+                                                    });
+
+                                                } else {
+                                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                        if(err) {
+                                                            logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        });
+
+                                    }).catch(function(err)
+                                    {
+                                        fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                            if(err) {
+                                                logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                            }
+                                        });
+                                    });
+
+                                }).catch(function(err)
+                                {
+                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                        if(err) {
+                                            logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                        }
+                                    });
+                                });
+
+                            } else {
+
+                                jsonString = messageFormatter.FormatMessage(new Error('Failed to reserve file'), "ERROR", false, null);
+                                logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
+                                res.end(jsonString);
+
+                            }
+
+                        }
+                    });
+
+                }else {
+                    jsonString = messageFormatter.FormatMessage(new Error('Error deleting file'), "ERROR", false, null);
+                    logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
+                    res.end(jsonString);
+                }
+            }).catch(function(err)
+            {
+                jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
+                res.end(jsonString);
+            });
+
+
+
+
+
+
+    }
+    catch(ex)
+    {
+        jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, null);
+        logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+};
+
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
@@ -287,3 +540,4 @@ module.exports.GetResourceStatusDurationList = GetResourceStatusDurationList;
 module.exports.GetResourceStatusDurationSummery = GetResourceStatusDurationSummery;
 module.exports.GetResourceRejectSummery = GetResourceRejectSummery;
 module.exports.GetResourceRejectCount = GetResourceRejectCount;
+module.exports.PrepareForDownloadResourceRejectSummery = PrepareForDownloadResourceRejectSummery;
