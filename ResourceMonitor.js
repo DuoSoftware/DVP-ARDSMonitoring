@@ -274,9 +274,9 @@ var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyI
             });
 
             var rejectDetailQuery = {
-                attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
-                where : [{SessionId: {$in:sessionIdList}}],
-                group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData']
+                attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                where : [{SessionId: {$in:sessionIdList}, ResourceId: resourceId}],
+                group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
             };
 
             dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
@@ -377,9 +377,9 @@ var PrepareForDownloadResourceRejectSummery = function(startTime, endTime, resou
                                     });
 
                                     var rejectDetailQuery = {
-                                        attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
-                                        where : [{SessionId: {$in:sessionIdList}}],
-                                        group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'Reason', 'SessionId', 'OtherData']
+                                        attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                                        where : [{SessionId: {$in:sessionIdList}, ResourceId: resourceId}],
+                                        group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
                                     };
 
                                     dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
