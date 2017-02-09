@@ -355,6 +355,89 @@ server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaBreakDown/date/:summaryDa
     return next();
 });
 
+
+server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:rowCount', jwt({secret: secret.Secret}), authorization({resource:"ardsresource", action:"read"}), function(req, res, next)
+{
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+        var resourceId = req.params.resourceId;
+
+        var pageNo =parseInt(req.params.pageNo);
+        var rowCount = parseInt(req.params.rowCount);
+
+        var companyId = req.user.company;
+        var tenantId = req.user.tenant;
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceStatusDurationList(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, function(err, resList)
+        {
+            var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
+            logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+            res.end(jsonString);
+
+        });
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
+
+server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId', jwt({secret: secret.Secret}), authorization({resource:"ardsresource", action:"read"}), function(req, res, next)
+{
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+        var resourceId = req.params.resourceId;
+
+        var companyId = req.user.company;
+        var tenantId = req.user.tenant;
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceStatusDurationSummery(startDate, endDate, resourceId, companyId, tenantId, function(err, resList)
+        {
+            var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
+            logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - API RESPONSE : %s', jsonString);
+            res.end(jsonString);
+
+        });
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
 server.listen(hostPort, function () {
     console.log('%s listening at %s', server.name, server.url);
 });

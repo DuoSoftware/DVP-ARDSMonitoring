@@ -304,15 +304,21 @@ var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDat
                 for(var i in records){
                     SetQueueName(records[i], function(newSummary){
                         count++;
-                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
-                            newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+
+                        if(newSummary){
+                            newSummary.SlaViolated = "True";
+                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                            }
+
+                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
+                                newSummary.SlaViolated = "False";
+                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                            }
+
+                            newSummaries.push(newSummary);
                         }
 
-                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
-                            newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
-                        }
-
-                        newSummaries.push(newSummary);
                         if(count == records.length){
                             var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
                             callback.end(jsonString);
@@ -343,27 +349,31 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, cal
                 for(var i in records){
                     SetQueueName(records[i], function(newSummary){
                         count++;
-                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
-                            newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
-                        }
 
-                        if(newSummary && newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
-                            newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
-                        }
+                        if(newSummary) {
+                            newSummary.SlaViolated = "True";
+                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1) {
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                            }
 
-                        var queue = FilterObjFromArray(newSummaries, 'Queue', newSummary.Queue);
-                        if(queue){
-                            var timeRange = FilterObjFromArray(newSummaries, 'BreakDown', newSummary.BreakDown);
-                            if(timeRange){
-                                timeRange.ThresholdCount = timeRange.ThresholdCount + newSummary.ThresholdCount;
-                                timeRange.Average = (timeRange.ThresholdCount / timeRange.TotalCount)*100;
-                            }else{
+                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1) {
+                                newSummary.SlaViolated = "False";
+                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                            }
+
+                            var queue = FilterObjFromArray(newSummaries, 'Queue', newSummary.Queue);
+                            if (queue) {
+                                var timeRange = FilterObjFromArray(newSummaries, 'BreakDown', newSummary.BreakDown);
+                                if (timeRange) {
+                                    timeRange.ThresholdCount = timeRange.ThresholdCount + newSummary.ThresholdCount;
+                                    timeRange.Average = (timeRange.ThresholdCount / timeRange.TotalCount) * 100;
+                                } else {
+                                    newSummaries.push(newSummary);
+                                }
+                            } else {
                                 newSummaries.push(newSummary);
                             }
-                        }else{
-                            newSummaries.push(newSummary);
                         }
-
                         if(count == records.length){
                             var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
                             callback.end(jsonString);
@@ -383,6 +393,8 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, cal
             callback.end(jsonString);
         });
 };
+
+
 
 module.exports.GetAllRequests = GetAllRequests;
 module.exports.GetRequestFilterByClassTypeCategory = GetRequestFilterByClassTypeCategory;

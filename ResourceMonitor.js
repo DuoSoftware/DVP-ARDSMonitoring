@@ -3,6 +3,7 @@ var EventEmitter = require('events').EventEmitter;
 var resourceHandler = require('dvp-ardscommon/ResourceHandler.js');
 var redisHandler = require('dvp-ardscommon/RedisHandler.js');
 var commonMethods = require('dvp-ardscommon/CommonMethods');
+var dbConn = require('dvp-dbmodels');
 
 var ProcessResourceData = function(logkey,resource, callback){
     //var e = new EventEmitter();
@@ -134,6 +135,63 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
     });
 };
 
+
+var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback)
+{
+    var emptyArr = [];
+    try
+    {
+        var defaultQuery = {where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}],
+            offset: ((pageNo - 1) * rowCount),
+            limit: rowCount,
+            order: ['createdAt']};
+
+
+        dbConn.ResResourceStatusDurationInfo.findAll(defaultQuery).then(function(resourceInfoList)
+        {
+            callback(null, resourceInfoList)
+
+        }).catch(function(err)
+        {
+            callback(err, emptyArr)
+        });
+
+    }
+    catch(ex)
+    {
+        callback(ex, emptyArr);
+    }
+};
+
+var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback)
+{
+    var emptyArr = [];
+    try
+    {
+        var defaultQuery = {
+            attributes: [[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('*')), 'TotalAcwSessions'],[dbConn.SequelizeConn.fn('SUM', dbConn.SequelizeConn.col('Duration')), 'TotalAcwTime'],[dbConn.SequelizeConn.fn('AVG', dbConn.SequelizeConn.col('Duration')), 'AverageAcwTime']],
+            where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}]
+        };
+
+
+        dbConn.ResResourceStatusDurationInfo.find(defaultQuery).then(function(resourceInfoList)
+        {
+            callback(null, resourceInfoList)
+
+        }).catch(function(err)
+        {
+            callback(err, emptyArr)
+        });
+
+    }
+    catch(ex)
+    {
+        callback(ex, emptyArr);
+    }
+};
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
+module.exports.GetResourceStatusDurationList = GetResourceStatusDurationList;
+module.exports.GetResourceStatusDurationSummery = GetResourceStatusDurationSummery;
