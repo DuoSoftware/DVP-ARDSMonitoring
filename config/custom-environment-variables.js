@@ -9,7 +9,13 @@
 		"accessToken": "HOST_TOKEN",
 		"routingServiceHost": "SYS_ARDSLITEROUTINGENGINE_HOST",
 		"routingServicePort": "SYS_ARDSLITEROUTINGENGINE_PORT",
-		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION"
+		"routingServiceVersion": "SYS_ARDSLITEROUTINGENGINE_VERSION",
+		"fileServiceHost": "SYS_FILESERVICE_HOST",
+		"fileServicePort": "SYS_FILESERVICE_PORT",
+		"fileServiceVersion": "SYS_FILESERVICE_VERSION",
+		"cdrServiceHost": "SYS_CDRPROCESSOR_HOST",
+		"cdrServicePort": "SYS_CDRPROCESSOR_PORT",
+		"cdrServiceVersion": "SYS_CDRPROCESSOR_VERSION"
 	},
 	"Host": {
 		"Port": "HOST_ARDSMONITOR_PORT",
