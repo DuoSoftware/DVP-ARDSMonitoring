@@ -198,11 +198,54 @@ var convertToMMSS = function (sec) {
 };
 
 
-var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback) {
+var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, skill, callback) {
     var emptyArr = [];
     try
     {
-        var defaultQuery = {where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}],
+        var offset = (pageNo - 1) * rowCount;
+
+        if(skill)
+        {
+            dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt" LIMIT ' + rowCount + ' OFFSET ' + offset + ';')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+        else
+        {
+            dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt" LIMIT ' + rowCount + ' OFFSET ' + offset + ';')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+
+
+
+        /*var defaultQuery = {where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}],
             offset: ((pageNo - 1) * rowCount),
             limit: rowCount,
             order: ['createdAt']};
@@ -215,7 +258,7 @@ var GetResourceStatusDurationList = function(startTime, endTime, resourceId, com
         }).catch(function(err)
         {
             callback(err, emptyArr)
-        });
+        });*/
 
     }
     catch(ex)
@@ -224,11 +267,51 @@ var GetResourceStatusDurationList = function(startTime, endTime, resourceId, com
     }
 };
 
-var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
+var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
     var emptyArr = [];
     try
     {
-        var defaultQuery = {
+        if(skill)
+        {
+            dbConn.SequelizeConn.query('SELECT COUNT("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwSessions", SUM("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwTime", AVG("DB_RES_ResourceAcwInfos"."Duration") AS "AverageAcwTime" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\'));')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0][0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+        else
+        {
+            dbConn.SequelizeConn.query('SELECT COUNT("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwSessions", SUM("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwTime", AVG("DB_RES_ResourceAcwInfos"."Duration") AS "AverageAcwTime" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\'));')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0][0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+
+
+        /*var defaultQuery = {
             attributes: [[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('*')), 'TotalAcwSessions'],[dbConn.SequelizeConn.fn('SUM', dbConn.SequelizeConn.col('Duration')), 'TotalAcwTime'],[dbConn.SequelizeConn.fn('AVG', dbConn.SequelizeConn.col('Duration')), 'AverageAcwTime']],
             where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}]
         };
@@ -241,7 +324,7 @@ var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, 
         }).catch(function(err)
         {
             callback(err, emptyArr)
-        });
+        });*/
 
     }
     catch(ex)

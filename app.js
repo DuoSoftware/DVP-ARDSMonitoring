@@ -362,6 +362,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
     {
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
+        var skill = req.query.skill;
         var resourceId = req.params.resourceId;
 
         var pageNo =parseInt(req.params.pageNo);
@@ -378,7 +379,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
         logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceStatusDurationList(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, function(err, resList)
+        resourceMonitor.GetResourceStatusDurationList(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, skill, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - API RESPONSE : %s', jsonString);
@@ -406,6 +407,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId',
     {
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
+        var skill = req.query.skill;
         var resourceId = req.params.resourceId;
 
         var companyId = req.user.company;
@@ -419,7 +421,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId',
         logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceStatusDurationSummery(startDate, endDate, resourceId, companyId, tenantId, function(err, resList)
+        resourceMonitor.GetResourceStatusDurationSummery(startDate, endDate, resourceId, companyId, tenantId, skill, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - API RESPONSE : %s', jsonString);
