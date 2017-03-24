@@ -3,6 +3,7 @@ var util = require('util');
 var uuid = require('node-uuid');
 var requsetMonitor = require('./RequestMonitor.js');
 var resourceMonitor = require('./ResourceMonitor.js');
+var callCenterMonitor = require('./CallCenterMonitor.js');
 var infoLogger = require('dvp-ardscommon/InformationLogger.js');
 var authHandler = require('dvp-ardscommon/Authorization.js');
 var config = require('config');
@@ -551,6 +552,39 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/p
 
     return next();
 });
+
+
+
+//---------------------------Call Center Monitoring-----------------------------------
+server.get('/DVP/API/:version/ARDS/MONITORING/callCenter/from/:summaryFromDate/to/:summaryToDate',authorization({resource:"queue", action:"read"}), function (req, res, next) {
+
+    var jsonString;
+    try {
+        logger.info('[callCenterMonitor.callCenterPerformance] - [HTTP]  - Request received -  Data - %s ', JSON.stringify(req.params));
+
+        if (!req.user ||!req.user.tenant || !req.user.company)
+            throw new Error("invalid tenant or company.");
+        var tenantId = req.user.tenant.toString();
+        var companyId = req.user.company.toString();
+        callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, function (err, result) {
+            if(err){
+                jsonString = messageFormatter.FormatMessage(err, "Error", false, undefined);
+                res.end(jsonString);
+            }else{
+                jsonString = messageFormatter.FormatMessage(undefined, "Get Call Center Performance Success", true, result);
+                res.end(jsonString);
+            }
+        });
+    }
+    catch (ex) {
+        logger.error('[callCenterMonitor.callCenterPerformance] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
+        jsonString = messageFormatter.FormatMessage(ex, "Error", false, undefined);
+        logger.debug('[callCenterMonitor.callCenterPerformance] - Request response : %s ', jsonString);
+        res.end(jsonString);
+    }
+    return next();
+});
+
 
 
 server.listen(hostPort, function () {
