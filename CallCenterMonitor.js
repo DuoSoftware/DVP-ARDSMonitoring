@@ -16,7 +16,7 @@ var LoadCallCenterPerformanceData = function(tenant, company, startTime, endTime
     {
 
         var callCenterPerformanceQuery = {
-            where : [{Company: company, Tenant: tenant, WindowName: {$in:['CALLS', 'QUEUE', 'CONNECTED', 'QUEUEDROPPED', 'LOGIN', 'AFTERWORK']}, SummaryDate: {between:[startTime, endTime]}}]
+            where : [{Company: company, Tenant: tenant, WindowName: {$in:['CALLS', 'QUEUE', 'QUEUEANSWERED', 'CONNECTED', 'QUEUEDROPPED', 'LOGIN', 'AFTERWORK']}, SummaryDate: {between:[startTime, endTime]}}]
         };
 
         dbConn.DashboardDailySummary.findAll(callCenterPerformanceQuery).then(function(performanceData)
@@ -92,6 +92,33 @@ var ProcessQueues = function(performanceData){
 
     return deferred.promise;
 };
+
+var ProcessQueueAnswer = function(performanceData){
+    var deferred = Q.defer();
+
+    try{
+
+        var result = {
+            TotalQueueAnswered: 0
+        };
+
+        var queueData = performanceData.filter(function (pData) {
+            return pData.WindowName === "QUEUEANSWERED";
+        });
+
+        queueData.forEach(function (queue) {
+            result.TotalQueueAnswered = result.TotalQueueAnswered + queue.TotalCount;
+        });
+
+        deferred.resolve(result);
+
+    }catch(ex){
+        deferred.reject(ex);
+    }
+
+    return deferred.promise;
+};
+
 
 var ProcessAnswer = function(performanceData){
     var deferred = Q.defer();
@@ -238,7 +265,8 @@ var GetCallCenterPerformance = function (tenant, company, startTime, endTime, ca
             ProcessAnswer(performanceData),
             ProcessDropped(performanceData),
             ProcessLogin(performanceData),
-            ProcessAfterWork(performanceData)
+            ProcessAfterWork(performanceData),
+            ProcessQueueAnswer(performanceData)
         ];
 
         Q.all(asyncTasks).then(function (results) {
@@ -246,7 +274,7 @@ var GetCallCenterPerformance = function (tenant, company, startTime, endTime, ca
                 totalInbound: results[0].TotalInboundCallCount,
                 totalOutbound: results[0].TotalOutboundCallCount,
                 totalQueued: results[1].TotalQueued,
-                totalQueueAnswered: results[2].TotalInboundAnswerCount + results[2].TotalOutboundAnswerCount,
+                totalQueueAnswered: results[6].TotalQueueAnswered,
                 totalQueueDropped: results[3].TotalDropped,
                 totalTalkTime: results[2].TotalAnswerTime,
                 totalStaffTime: results[4].TotalStaffTime,
