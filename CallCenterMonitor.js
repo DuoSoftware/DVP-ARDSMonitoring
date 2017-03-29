@@ -226,7 +226,8 @@ var GetCallCenterPerformance = function (tenant, company, startTime, endTime, ca
         AverageStaffTime: 0,
         AverageAcwTime: 0,
         AverageInboundCallsPerAgent: 0,
-        AverageOutboundCallsPerAgent: 0
+        AverageOutboundCallsPerAgent: 0,
+        TotalLoginAgents: 0
     };
 
     LoadCallCenterPerformanceData(tenant, company, startTime, endTime).then(function(performanceData){
@@ -253,7 +254,8 @@ var GetCallCenterPerformance = function (tenant, company, startTime, endTime, ca
                 AverageStaffTime: results[4].TotalStaffCount?results[4].TotalStaffTime / results[4].TotalStaffCount: 0,
                 AverageAcwTime: results[4].TotalStaffCount?results[5].TotalAcwTime / results[4].TotalStaffCount: 0,
                 AverageInboundCallsPerAgent: results[2].TotalInboundAgentCount?results[2].TotalInboundAnswerCount/ results[2].TotalInboundAgentCount: 0,
-                AverageOutboundCallsPerAgent: results[2].TotalOutboundAgentCount?results[2].TotalOutboundAnswerCount / results[2].TotalOutboundAgentCount: 0
+                AverageOutboundCallsPerAgent: results[2].TotalOutboundAgentCount?results[0].TotalOutboundCallCount / results[2].TotalOutboundAgentCount: 0,
+                TotalStaffCount: results[4].TotalStaffCount
             };
 
             callback(undefined, callCenterPerformance);
