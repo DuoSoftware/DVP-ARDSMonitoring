@@ -145,7 +145,7 @@ var ProcessAnswer = function(performanceData){
                 result.TotalInboundAgentCount = result.TotalInboundAgentCount + 1;
             }else{
                 result.TotalOutboundAnswerCount = result.TotalOutboundAnswerCount + answer.TotalCount;
-                result.TotalOutboundAgentCount = result.TotalOutboundAgentCount + answer.TotalCount;
+                result.TotalOutboundAgentCount = result.TotalOutboundAgentCount + 1;
             }
         });
 
