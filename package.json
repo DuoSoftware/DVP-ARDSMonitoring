@@ -12,6 +12,7 @@
     "dvp-common": "^0.1.3",
     "dvp-dbmodels": "^0.8.1",
     "json2csv": "^3.7.3",
+    "moment": "^2.18.1",
     "node-uuid": "^1.4.7",
     "q": "^1.5.0",
     "request": "^2.79.0",
