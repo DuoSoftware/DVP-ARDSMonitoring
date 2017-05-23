@@ -566,15 +566,20 @@ server.get('/DVP/API/:version/ARDS/MONITORING/callCenter/from/:summaryFromDate/t
             throw new Error("invalid tenant or company.");
         var tenantId = req.user.tenant.toString();
         var companyId = req.user.company.toString();
-        callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, function (err, result) {
-            if(err){
-                jsonString = messageFormatter.FormatMessage(err, "Error", false, undefined);
-                res.end(jsonString);
-            }else{
-                jsonString = messageFormatter.FormatMessage(undefined, "Get Call Center Performance Success", true, result);
-                res.end(jsonString);
-            }
-        });
+
+        if(req.query && req.query.reqType === 'download'){
+            callCenterMonitor.PrepareForDownloadCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
+        }else {
+            callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, function (err, result) {
+                if (err) {
+                    jsonString = messageFormatter.FormatMessage(err, "Error", false, undefined);
+                    res.end(jsonString);
+                } else {
+                    jsonString = messageFormatter.FormatMessage(undefined, "Get Call Center Performance Success", true, result);
+                    res.end(jsonString);
+                }
+            });
+        }
     }
     catch (ex) {
         logger.error('[callCenterMonitor.callCenterPerformance] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
