@@ -350,10 +350,10 @@ var GetSingleDateSummary = function (filterDataForDate, summaryDate) {
             totalQueueDropped: results[3].TotalDropped,
             totalStaffTime: results[4].TotalStaffTime,
             totalAcwTime: results[5].TotalAcwTime,
-            AverageStaffTime: results[4].TotalStaffCount?results[4].TotalStaffTime / results[4].TotalStaffCount: 0,
-            AverageAcwTime: results[4].TotalStaffCount?results[5].TotalAcwTime / results[4].TotalStaffCount: 0,
-            AverageInboundCallsPerAgent: results[2].TotalInboundAgentCount?results[2].TotalInboundAnswerCount/ results[2].TotalInboundAgentCount: 0,
-            AverageOutboundCallsPerAgent: results[2].TotalOutboundAgentCount?results[0].TotalOutboundCallCount / results[2].TotalOutboundAgentCount: 0,
+            AverageStaffTime: results[4].TotalStaffCount?(results[4].TotalStaffTime / results[4].TotalStaffCount).toFixed(2): 0,
+            AverageAcwTime: results[4].TotalStaffCount?(results[5].TotalAcwTime / results[4].TotalStaffCount).toFixed(2): 0,
+            AverageInboundCallsPerAgent: results[2].TotalInboundAgentCount?(results[2].TotalInboundAnswerCount/ results[2].TotalInboundAgentCount).toFixed(2): 0,
+            AverageOutboundCallsPerAgent: results[2].TotalOutboundAgentCount?(results[0].TotalOutboundCallCount / results[2].TotalOutboundAgentCount).toFixed(2): 0,
             TotalStaffCount: results[4].TotalStaffCount,
 
 
@@ -362,8 +362,8 @@ var GetSingleDateSummary = function (filterDataForDate, summaryDate) {
             totalBreakTime: results[7].TotalBreakTime,
             totalHoldTime: results[8].TotalHoldTime,
             totalIdleTime: results[4].TotalStaffTime - (results[5].TotalAcwTime + results[2].TotalInboundAnswerTime + results[2].TotalOutboundAnswerTime + results[7].TotalBreakTime + results[8].TotalHoldTime),
-            AverageTalkTimeInbound: results[0].TotalInboundCallCount? results[2].TotalInboundAnswerTime / results[0].TotalInboundCallCount: 0,
-            AverageTalkTimeOutbound: results[0].TotalOutboundCallCount? results[2].TotalOutboundAnswerTime / results[0].TotalOutboundCallCount: 0
+            AverageTalkTimeInbound: results[0].TotalInboundCallCount? (results[2].TotalInboundAnswerTime / results[0].TotalInboundCallCount).toFixed(2): 0,
+            AverageTalkTimeOutbound: results[0].TotalOutboundCallCount? (results[2].TotalOutboundAnswerTime / results[0].TotalOutboundCallCount).toFixed(2): 0
         };
 
         deferred.resolve(callCenterPerformance);
@@ -508,8 +508,8 @@ var PrepareForDownloadCallCenterPerformance = function(tenant, company, startTim
 
 
                                 Q.all(summaryTasks).then(function (results) {
-                                    var tagHeaders = ['Date', 'totalInbound', 'totalOutbound', 'totalQueued', 'totalQueueAnswered', 'totalQueueDropped', 'totalStaffTime', 'totalAcwTime', 'AverageStaffTime', 'AverageAcwTime', 'AverageInboundCallsPerAgent', 'AverageOutboundCallsPerAgent', 'TotalStaffCount', 'totalTalkTimeInbound', 'totalTalkTimeOutbound', 'totalBreakTime', 'totalHoldTime', 'totalIdleTime', 'AverageTalkTimeInbound', 'AverageTalkTimeOutbound'];
-                                    var tagOrder = ['Date', 'totalInbound', 'totalOutbound', 'totalQueued', 'totalQueueAnswered', 'totalQueueDropped', 'totalStaffTime', 'totalAcwTime', 'AverageStaffTime', 'AverageAcwTime', 'AverageInboundCallsPerAgent', 'AverageOutboundCallsPerAgent', 'TotalStaffCount', 'totalTalkTimeInbound', 'totalTalkTimeOutbound', 'totalBreakTime', 'totalHoldTime', 'totalIdleTime', 'AverageTalkTimeInbound', 'AverageTalkTimeOutbound'];
+                                    var tagOrder = ['Date', 'totalInbound', 'totalOutbound', 'totalQueued', 'totalQueueAnswered', 'totalQueueDropped', 'TotalStaffCount', 'AverageInboundCallsPerAgent', 'AverageOutboundCallsPerAgent', 'totalStaffTime', 'AverageStaffTime', 'totalAcwTime', 'AverageAcwTime', 'totalTalkTimeInbound', 'totalTalkTimeOutbound', 'totalBreakTime', 'totalHoldTime', 'totalIdleTime', 'AverageTalkTimeInbound', 'AverageTalkTimeOutbound'];
+                                    var tagHeaders = ['Date', 'TotalInbound', 'TotalOutbound', 'TotalQueued', 'TotalQueueAnswered', 'TotalQueueDropped', 'TotalStaffCount', 'AverageInboundCallsPerAgent', 'AverageOutboundCallsPerAgent', 'TotalStaffTime', 'AverageStaffTime', 'TotalAcwTime', 'AverageAcwTime', 'TotalTalkTimeInbound', 'TotalTalkTimeOutbound', 'TotalBreakTime', 'TotalHoldTime', 'TotalIdleTime', 'AverageTalkTimeInbound', 'AverageTalkTimeOutbound'];
 
                                     var reportData = results.map(function (record) {
 
