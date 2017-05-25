@@ -17,6 +17,7 @@ var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
     version: '1.0.0'
 });
+server.pre(restify.pre.userAgentConnection());
 restify.CORS.ALLOW_HEADERS.push('authorization');
 server.use(restify.CORS());
 server.use(restify.fullResponse());
@@ -589,6 +590,9 @@ server.get('/DVP/API/:version/ARDS/MONITORING/callCenter/from/:summaryFromDate/t
     }
     return next();
 });
+
+
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/status/publish', authorization({resource:"ardsresource", action:"write"}), resourceMonitor.SetAndPublishResourceStatus);
 
 
 

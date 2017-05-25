@@ -15,7 +15,10 @@
 		"fileServiceVersion": "SYS_FILESERVICE_VERSION",
 		"cdrServiceHost": "SYS_CDRPROCESSOR_HOST",
 		"cdrServicePort": "SYS_CDRPROCESSOR_PORT",
-		"cdrServiceVersion": "SYS_CDRPROCESSOR_VERSION"
+		"cdrServiceVersion": "SYS_CDRPROCESSOR_VERSION",
+		"notificationServiceHost": "SYS_NOTIFICATIONSERVICE_HOST",
+		"notificationServicePort": "SYS_NOTIFICATIONSERVICE_PORT",
+		"notificationServiceVersion": "SYS_NOTIFICATIONSERVICE_VERSION"
 	},
 	"Host": {
 		"Port": "HOST_ARDSMONITOR_PORT",

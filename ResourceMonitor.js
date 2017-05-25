@@ -12,6 +12,9 @@ var Promise = require('bluebird');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 var deepcopy = require('deepcopy');
 var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
+var Q = require('q');
+var moment = require('moment');
+var notificationService = require('./Services/NotificationService');
 
 var ProcessResourceData = function(logkey,resource, callback){
     //var e = new EventEmitter();
@@ -616,6 +619,246 @@ var PrepareForDownloadResourceRejectSummery = function(startTime, endTime, resou
 };
 
 
+
+//-------------------------Resource Status Event Publish-----------------------------------------------
+
+var getObjByKey = function (key) {
+    var deferred = Q.defer();
+
+    try {
+        redisHandler.GetObj('getObjByKey', key, function (err, result) {
+            if (err) {
+                deferred.reject(err);
+            } else {
+                if(result) {
+                    deferred.resolve(JSON.parse(result));
+                }else{
+                    deferred.reject(new Error('No Value Found'));
+                }
+            }
+        });
+    }catch(ex){
+        deferred.reject(ex);
+    }
+    return deferred.promise;
+};
+
+var getMultipleObjByKeys = function (keys) {
+    var deferred = Q.defer();
+
+    try {
+        redisHandler.MGetObj('getMultipleObjByKeys', keys, function (err, results) {
+            if (err) {
+                deferred.reject(err);
+            } else {
+                var convertedResults = [];
+                results.forEach(function (result) {
+
+                    if(result){
+                        convertedResults.push(JSON.parse(result));
+                    }
+                });
+                deferred.resolve(convertedResults);
+            }
+        });
+    }catch(ex){
+        deferred.reject(ex);
+    }
+    return deferred.promise;
+};
+
+var SetAndPublishResourceStatus = function (req, res) {
+
+    var company = parseInt(req.user.company);
+    var tenant = parseInt(req.user.tenant);
+    var resourceId = req.params.resourceId;
+
+    var resourceKey = util.format('Resource:%d:%d:%s', company, tenant, resourceId);
+    var resourceObj = {};
+    var publishProfiles = [];
+
+    res.writeHead(202);
+    res.end(messageFormatter.FormatMessage(undefined, "Resource status publish accepted by server", true, undefined));
+
+    getObjByKey(resourceKey).then(function (resource) {
+
+        var resourceStateKey = util.format('ResourceState:%d:%d:%s', resource.Company, resource.Tenant, resource.ResourceId);
+        var nextResourceKeys = resource.ConcurrencyInfo;
+
+        nextResourceKeys.push(resourceStateKey);
+        resourceObj = resource;
+
+        return getMultipleObjByKeys(nextResourceKeys);
+
+    }).then(function(results){
+
+        if(results && results.length > 0) {
+
+            var statusData = results.filter(function (result) {
+                return !result.ObjKey;
+            });
+
+            if(statusData && statusData.length > 0){
+                resourceObj.Status = statusData[0];
+            }else{
+                resourceObj.Status = undefined;
+            }
+
+
+            if(resourceObj.LoginTasks && resourceObj.LoginTasks.length > 0 && resourceObj.Status) {
+
+                resourceObj.LoginTasks.forEach(function (task) {
+
+                    var concurrencyAndSlotData = results.filter(function (result) {
+                        return result.HandlingType && result.HandlingType === task;
+                    });
+
+                    if (concurrencyAndSlotData && concurrencyAndSlotData.length > 0) {
+                        var concurrencyData = concurrencyAndSlotData.filter(function (csData) {
+                            return csData.ObjKey.indexOf('ConcurrencyInfo') > -1;
+                        });
+
+                        if (concurrencyData && concurrencyData.length > 0) {
+
+                            var concurrencyDetail = concurrencyData[0];
+
+
+
+                            if (concurrencyDetail.IsRejectCountExceeded) {
+
+                                publishProfiles.push({
+                                    resourceName: resourceObj.ResourceName,
+                                    userName: resourceObj.UserName,
+                                    task: task,
+                                    slotState: "Suspended",
+                                    slotMode: resourceObj.Status.Mode,
+                                    LastReservedTime: moment(concurrencyDetail.LastConnectedTime).format("h:mm a"),
+                                    LastReservedTimeT: concurrencyDetail.LastConnectedTime,
+                                    other: "Reject"
+                                });
+
+                            }else if(resourceObj.Status.State == "NotAvailable" && resourceObj.Status.Reason.toLowerCase().indexOf("break") > -1){
+
+                                publishProfiles.push({
+                                    resourceName: resourceObj.ResourceName,
+                                    userName: resourceObj.UserName,
+                                    task: task,
+                                    slotState: resourceObj.Status.Reason,
+                                    slotMode: resourceObj.Status.Mode,
+                                    LastReservedTime: moment(resourceObj.Status.StateChangeTime).format("h:mm a"),
+                                    LastReservedTimeT: resourceObj.Status.StateChangeTime,
+                                    other:"Break"
+                                });
+
+                            }else{
+
+                                var slotData = concurrencyAndSlotData.filter(function (csData) {
+                                    return csData.ObjKey.indexOf('CSlotInfo') > -1;
+                                });
+
+                                if(slotData && slotData.length > 0) {
+
+                                    slotData.forEach(function (slot) {
+                                        publishProfiles.push({
+                                            resourceName: resourceObj.ResourceName,
+                                            userName: resourceObj.UserName,
+                                            task: task,
+                                            slotState: slot.State,
+                                            slotMode: resourceObj.Status.Mode,
+                                            LastReservedTime: moment(slot.StateChangeTime).format("h:mm a"),
+                                            LastReservedTimeT: slot.StateChangeTime,
+                                            other: null
+                                        });
+                                    });
+
+                                }else{
+
+                                    publishProfiles.push({
+                                        resourceName: resourceObj.ResourceName,
+                                        userName: resourceObj.UserName,
+                                        task: task,
+                                        slotState: "Other",
+                                        slotMode: resourceObj.Status.Mode,
+                                        LastReservedTime: moment(resourceObj.Status.StateChangeTime).format("h:mm a"),
+                                        LastReservedTimeT: resourceObj.Status.StateChangeTime,
+                                        other: "Offline"
+                                    });
+
+                                }
+
+                            }
+
+                        }else{
+                            publishProfiles.push({
+                                resourceName: resourceObj.ResourceName,
+                                userName: resourceObj.UserName,
+                                task: task,
+                                slotState: "Other",
+                                slotMode: resourceObj.Status.Mode,
+                                LastReservedTime: moment(resourceObj.Status.StateChangeTime).format("h:mm a"),
+                                LastReservedTimeT: resourceObj.Status.StateChangeTime,
+                                other: "Offline"
+                            });
+                        }
+                    }else{
+                        publishProfiles.push({
+                            resourceName: resourceObj.ResourceName,
+                            userName: resourceObj.UserName,
+                            task: task,
+                            slotState: "Other",
+                            slotMode: resourceObj.Status.Mode,
+                            LastReservedTime: moment(resourceObj.Status.StateChangeTime).format("h:mm a"),
+                            LastReservedTimeT: resourceObj.Status.StateChangeTime,
+                            other: "Offline"
+                        });
+                    }
+
+                });
+
+            }else{
+                if(resourceObj.Status){
+
+                    var offlineProfile = {
+                        resourceName: resourceObj.ResourceName,
+                        userName: resourceObj.UserName,
+                        task: '',
+                        slotState: "Other",
+                        slotMode: resourceObj.Status.Mode,
+                        LastReservedTime: moment(resourceObj.Status.StateChangeTime).format("h:mm a"),
+                        LastReservedTimeT: resourceObj.Status.StateChangeTime,
+                        other: "Offline"
+                    };
+
+                    if (resourceObj.Status.State == "NotAvailable" && resourceObj.Status.Reason.toLowerCase().indexOf("break") > -1) {
+                        offlineProfile.slotState = resourceObj.Status.Reason;
+                        offlineProfile.other = "Break";
+                    }
+
+                    publishProfiles.push(offlineProfile);
+
+                }else{
+                    logger.info('No Resource Status Found - ' + resourceObj.ResourceId);
+                }
+            }
+        }
+
+        logger.info(JSON.stringify(publishProfiles));
+
+        if(publishProfiles){
+            publishProfiles.forEach(function (profile) {
+                var postData = {message: profile, From: 'ArdsMonitoringService'};
+                notificationService.RequestToNotify(company, tenant, 'ARDS:ResourceStatus', 'ResourceStatus', postData);
+            });
+        }
+
+    }).catch(function(err){
+
+        logger.error('Error on evaluating resource object');
+
+    });
+
+};
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
@@ -624,3 +867,4 @@ module.exports.GetResourceStatusDurationSummery = GetResourceStatusDurationSumme
 module.exports.GetResourceRejectSummery = GetResourceRejectSummery;
 module.exports.GetResourceRejectCount = GetResourceRejectCount;
 module.exports.PrepareForDownloadResourceRejectSummery = PrepareForDownloadResourceRejectSummery;
+module.exports.SetAndPublishResourceStatus = SetAndPublishResourceStatus;
