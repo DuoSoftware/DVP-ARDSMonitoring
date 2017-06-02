@@ -683,6 +683,7 @@ var SetAndPublishResourceStatus = function (req, res) {
     if(statusType && resourceName && statusType === 'removeResource'){
 
         var resourceData = {
+            resourceId: resourceId,
             resourceName: resourceName
         };
         var resource_postData = {message: resourceData, From: 'ArdsMonitoringService'};
@@ -724,6 +725,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                     var date = new Date();
 
                     var taskData = {
+                        resourceId: resourceId,
                         resourceName: resourceName,
                         userName: resourceObj.UserName,
                         task: removeTask,
@@ -759,6 +761,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                     if (concurrencyDetail.IsRejectCountExceeded) {
 
                                         publishProfiles.push({
+                                            resourceId: resourceId,
                                             resourceName: resourceObj.ResourceName,
                                             userName: resourceObj.UserName,
                                             task: task,
@@ -772,6 +775,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                     } else if (resourceObj.Status.State == "NotAvailable" && resourceObj.Status.Reason.toLowerCase().indexOf("break") > -1) {
 
                                         publishProfiles.push({
+                                            resourceId: resourceId,
                                             resourceName: resourceObj.ResourceName,
                                             userName: resourceObj.UserName,
                                             task: task,
@@ -792,6 +796,7 @@ var SetAndPublishResourceStatus = function (req, res) {
 
                                             slotData.forEach(function (slot) {
                                                 publishProfiles.push({
+                                                    resourceId: resourceId,
                                                     resourceName: resourceObj.ResourceName,
                                                     userName: resourceObj.UserName,
                                                     task: task,
@@ -806,6 +811,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                         } else {
 
                                             publishProfiles.push({
+                                                resourceId: resourceId,
                                                 resourceName: resourceObj.ResourceName,
                                                 userName: resourceObj.UserName,
                                                 task: task,
@@ -822,6 +828,7 @@ var SetAndPublishResourceStatus = function (req, res) {
 
                                 } else {
                                     publishProfiles.push({
+                                        resourceId: resourceId,
                                         resourceName: resourceObj.ResourceName,
                                         userName: resourceObj.UserName,
                                         task: task,
@@ -834,6 +841,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                 }
                             } else {
                                 publishProfiles.push({
+                                    resourceId: resourceId,
                                     resourceName: resourceObj.ResourceName,
                                     userName: resourceObj.UserName,
                                     task: task,
@@ -851,6 +859,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                         if (resourceObj.Status) {
 
                             var offlineProfile = {
+                                resourceId: resourceId,
                                 resourceName: resourceObj.ResourceName,
                                 userName: resourceObj.UserName,
                                 task: '',
