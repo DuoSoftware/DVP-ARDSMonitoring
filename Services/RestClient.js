@@ -124,8 +124,35 @@ var DoDelete = function (companyInfo, serviceurl, callback) {
 
 };
 
+function DoPostNotification (companyInfo, eventName, serviceurl, postData, callback) {
+    var jsonStr = JSON.stringify(postData);
+    var accessToken = util.format("bearer %s", config.Services.accessToken);
+    var options = {
+        url: serviceurl,
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            'authorization': accessToken,
+            'companyinfo': companyInfo,
+            'eventname': eventName
+        },
+        body: jsonStr
+    };
+    try {
+        request.post(options, function optionalCallback(err, httpResponse, body) {
+            if (err) {
+                console.log('upload failed:', err);
+            }
+            console.log('Server returned: %j', body);
+            callback(err, httpResponse, body);
+        });
+    }catch(ex){
+        callback(ex, undefined, undefined);
+    }
+}
 
 module.exports.DoPost = DoPost;
 module.exports.DoGet = DoGet;
 module.exports.DoDelete = DoDelete;
 module.exports.DoPostFormData = DoPostFormData;
+module.exports.DoPostNotification = DoPostNotification;
