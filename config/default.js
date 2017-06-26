@@ -15,7 +15,10 @@
 		"fileServiceVersion": "1.0.0.0",
 		"cdrServiceHost": "cdrprocessor.app.veery.cloud",
 		"cdrServicePort": "2223",
-		"cdrServiceVersion": "1.0.0.0"
+		"cdrServiceVersion": "1.0.0.0",
+		"notificationServiceHost": "notificationservice.app.veery.cloud",
+		"notificationServicePort": "8089",
+		"notificationServiceVersion": "1.0.0.0"
 	},
 	"Host": {
 		"Ip": "127.0.0.1",
@@ -34,5 +37,12 @@
 		"ip" : "45.55.142.207",
 		"port": 6389,
 		"password":"DuoS123"
+	},
+	"RabbitMQ":
+	{
+		"ip": "45.55.142.207",
+		"port": 5672,
+		"user": "guest",
+		"password": "guest"
 	}
 };
