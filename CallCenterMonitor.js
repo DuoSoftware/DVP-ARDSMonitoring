@@ -473,7 +473,9 @@ var PrepareForDownloadCallCenterPerformance = function(tenant, company, startTim
         FileCheckAndDelete(company, tenant, fileName).then(function(chkResult) {
             if(chkResult) {
 
-                fileService.FileUploadReserve(company, tenant, fileName, function(err, fileResResp)
+                var reqBody = {class: 'MISSEDCALL', fileCategory:'REPORTS', display: fileName, filename: fileName};
+
+                fileService.FileUploadReserve(company, tenant, fileName, reqBody, function(err, fileResResp)
                 {
                     if (err) {
                         jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);

@@ -12,6 +12,11 @@ var jwt = require('restify-jwt');
 var secret = require('dvp-common/Authentication/Secret.js');
 var authorization = require('dvp-common/Authentication/Authorization.js');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
+var moment = require('moment');
+var Promise = require('bluebird');
+var fileService = require('./Services/fileService.js');
+var json2csv = require('json2csv');
+var fs = require('fs');
 
 var server = restify.createServer({
     name: 'ArdsMonitoringAPI',
@@ -394,6 +399,225 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
     {
         var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
         logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
+var fileCheckAndDelete = function(filename, companyId, tenantId)
+{
+    return new Promise(function(fulfill, reject)
+    {
+        fileService.GetFileMetadata(companyId, tenantId, filename, function(err, fileData)
+        {
+            if(fileData)
+            {
+                fileService.DeleteFile(companyId, tenantId, fileData.UniqueId, function (err, delResp)
+                {
+                    if (err)
+                    {
+                        reject(err);
+
+                    }
+                    else
+                    {
+                        fulfill(true);
+                    }
+
+                });
+            }
+            else
+            {
+                if(err)
+                {
+                    reject(err);
+                }
+                else
+                {
+                    fulfill(true);
+                }
+            }
+        })
+
+    })
+
+};
+
+server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/download', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+        var skill = req.query.skill;
+        var resourceId = req.params.resourceId;
+
+        var companyId = req.user.company;
+        var tenantId = req.user.tenant;
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        var dateTimestampSD = moment(startDate).unix();
+        var dateTimestampED = moment(endDate).unix();
+
+        logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+        var fileName = 'ACW_SUMMARY_' + tenantId + '_' + companyId + '_' + dateTimestampSD + '_' + dateTimestampED;
+
+        fileName = fileName.replace(/:/g, "-") + '.csv';
+
+        fileCheckAndDelete(fileName, companyId, tenantId)
+            .then(function(chkResult)
+            {
+                if(chkResult)
+                {
+                    var reqBody = {class: 'CDR', fileCategory:'REPORTS', display: fileName, filename: fileName};
+
+                    fileService.FileUploadReserve(companyId, tenantId, fileName, reqBody, function(err, fileResResp)
+                    {
+                        if (err)
+                        {
+                            var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                            logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+                            res.end(jsonString);
+                        }
+                        else
+                        {
+                            if(fileResResp)
+                            {
+                                var uniqueId = fileResResp.Result;
+
+                                //should respose end
+                                var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, fileName);
+                                logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+                                res.end(jsonString);
+
+                                resourceMonitor.GetResourceStatusDurationListAll(startDate, endDate, resourceId, companyId, tenantId, skill, function(err, resList)
+                                {
+
+                                    logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - ACW Processing Done');
+
+
+                                    if(err)
+                                    {
+                                        //can delete file reserve
+                                        fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                            if(err)
+                                            {
+                                                logger.error('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - Delete Failed : %s', err);
+                                            }
+                                        });
+                                    }
+                                    else
+                                    {
+                                        //Convert CDR LIST TO FILE AND UPLOAD
+
+                                        if(resList && resList.length > 0)
+                                        {
+                                            //Convert to CSV
+
+                                            var fieldNames = ['Call Direction', 'From Number', 'To Number', 'Skill', 'Hangup Party', 'ACW Duration(sec)'];
+
+                                            var fields = ['DVPCallDirection', 'SipFromUser', 'SipToUser', 'AgentSkill', 'HangupParty', 'Duration'];
+
+                                            var csvFileData = json2csv({ data: resList, fields: fields, fieldNames : fieldNames });
+
+                                            fs.writeFile(fileName, csvFileData, function(err)
+                                            {
+                                                if (err)
+                                                {
+                                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                        if(err)
+                                                        {
+                                                            logger.error('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - Delete Failed : %s', err);
+                                                        }
+                                                    });
+                                                }
+                                                else
+                                                {
+
+                                                    fileService.UploadFileAttachment(uniqueId, fileName, companyId, tenantId, function(err, uploadResp)
+                                                    {
+                                                        fs.unlink(fileName);
+                                                        if(!err && uploadResp)
+                                                        {
+
+                                                        }
+                                                        else
+                                                        {
+                                                            fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                                if(err)
+                                                                {
+                                                                    logger.error('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - Delete Failed : %s', err);
+                                                                }
+                                                            });
+                                                        }
+
+                                                    });
+
+                                                }
+                                            });
+
+
+                                        }
+                                        else
+                                        {
+                                            fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
+                                                if(err)
+                                                {
+                                                    logger.error('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - Delete Failed : %s', err);
+                                                }
+                                            });
+                                        }
+
+
+                                    }
+
+                                    var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
+                                    logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - API RESPONSE : %s', jsonString);
+                                    res.end(jsonString);
+
+                                });
+                            }
+                            else
+                            {
+                                var jsonString = messageFormatter.FormatMessage(new Error('Failed to reserve file'), "ERROR", false, null);
+                                logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                                res.end(jsonString);
+                            }
+
+
+
+
+                        }
+                    });
+                }
+                else
+                {
+                    var jsonString = messageFormatter.FormatMessage(new Error('Error deleting file'), "ERROR", false, null);
+                    logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                    res.end(jsonString);
+                }
+            })
+            .catch(function(err)
+            {
+                var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
+            });
+
+
+
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - API RESPONSE : %s', jsonString);
         res.end(jsonString);
     }
 

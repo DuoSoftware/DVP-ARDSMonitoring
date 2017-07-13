@@ -6,7 +6,9 @@ var restClientHandler = require('./RestClient');
 var util = require('util');
 var config = require('config');
 var validator = require('validator');
+var httpRequest = require('request');
 var fs = require('fs');
+
 
 function GetFileMetadata(company, tenant, filename, callback){
     try {
@@ -34,7 +36,7 @@ function GetFileMetadata(company, tenant, filename, callback){
     }
 }
 
-function FileUploadReserve(company, tenant, filename, callback){
+function FileUploadReserve(company, tenant, filename, reqBody, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/Reserve', config.Services.fileServiceHost, config.Services.fileServiceVersion);
 
@@ -42,8 +44,6 @@ function FileUploadReserve(company, tenant, filename, callback){
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/Reserve', config.Services.fileServiceHost, config.Services.fileServicePort, config.Services.fileServiceVersion);
         }
-
-        var reqBody = {class: 'MISSEDCALL', fileCategory:'REPORTS', display: filename, filename: filename};
 
         var companyInfo = util.format("%d:%d", tenant, company);
         restClientHandler.DoPost(companyInfo, httpUrl, reqBody, function (err, res1, result) {
@@ -61,6 +61,75 @@ function FileUploadReserve(company, tenant, filename, callback){
         callback(ex, undefined);
     }
 }
+
+var UploadFileAttachment = function(uniqueId, filename, companyId, tenantId, callback)
+{
+    try
+    {
+        var accessToken = util.format("bearer %s", config.Services.accessToken);
+
+        var fileServiceHost = config.Services.fileServiceHost;
+        var fileServicePort = config.Services.fileServicePort;
+        var fileServiceVersion = config.Services.fileServiceVersion;
+        var compInfo = tenantId + ':' + companyId;
+
+        if(fileServiceHost && fileServicePort && fileServiceVersion)
+        {
+            var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/Upload', fileServiceHost, fileServiceVersion);
+
+            if(validator.isIP(fileServiceHost))
+            {
+                httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/Upload', fileServiceHost, fileServicePort, fileServiceVersion);
+            }
+
+
+            var formData = {
+                class: 'CDR',
+                fileCategory:'REPORTS',
+                display: filename,
+                filename: filename,
+                attachments: [
+                    fs.createReadStream(filename)
+                ]
+
+            };
+
+            if(uniqueId)
+            {
+                formData.reservedId = uniqueId
+            }
+
+            httpRequest.post(httpUrl,{
+                headers: {'authorization': accessToken, 'companyinfo': compInfo},
+                formData: formData}, function(error, response, body)
+            {
+                if (!error && response.statusCode == 200)
+                {
+                    var apiResp = JSON.parse(body);
+
+                    logger.debug('[DVP-ARDSMonitoring.UploadFileAttachment] - file service returned : %s', apiResp);
+
+                    callback(apiResp.Exception, apiResp.Result);
+                }
+                else
+                {
+                    logger.error('[DVP-ARDSMonitoring.UploadFileAttachment] - file service call failed', error);
+                    callback(error, undefined);
+                }
+            });
+        }
+        else
+        {
+            logger.error('[DVP-ARDSMonitoring.UploadFileAttachment] - File host, port or version not found');
+            callback(new Error('File host, port or version not found'), undefined)
+        }
+    }
+    catch(ex)
+    {
+        logger.error('[DVP-ARDSMonitoring.UploadFileAttachment] - Exception occurred', ex);
+        callback(ex, undefined);
+    }
+};
 
 function UploadFile(company, tenant, uniqueId, formData, callback){
     try {
@@ -126,3 +195,4 @@ module.exports.GetFileMetadata = GetFileMetadata;
 module.exports.FileUploadReserve = FileUploadReserve;
 module.exports.UploadFile = UploadFile;
 module.exports.DeleteFile = DeleteFile;
+module.exports.UploadFileAttachment = UploadFileAttachment;

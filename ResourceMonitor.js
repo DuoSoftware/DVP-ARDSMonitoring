@@ -270,6 +270,56 @@ var GetResourceStatusDurationList = function(startTime, endTime, resourceId, com
     }
 };
 
+var GetResourceStatusDurationListAll = function(startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
+    var emptyArr = [];
+    try
+    {
+        if(skill)
+        {
+            dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt";')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+        else
+        {
+            dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt";')
+                .then(function(acwInfo)
+                {
+                    if(acwInfo && acwInfo.length > 0)
+                    {
+                        callback(null, acwInfo[0])
+                    }
+                    else
+                    {
+                        callback(null, emptyArr)
+                    }
+                })
+                .catch(function(err)
+                {
+                    callback(err, emptyArr)
+                });
+        }
+
+    }
+    catch(ex)
+    {
+        callback(ex, emptyArr);
+    }
+};
+
 var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
     var emptyArr = [];
     try
@@ -911,3 +961,4 @@ module.exports.GetResourceRejectSummery = GetResourceRejectSummery;
 module.exports.GetResourceRejectCount = GetResourceRejectCount;
 module.exports.PrepareForDownloadResourceRejectSummery = PrepareForDownloadResourceRejectSummery;
 module.exports.SetAndPublishResourceStatus = SetAndPublishResourceStatus;
+module.exports.GetResourceStatusDurationListAll = GetResourceStatusDurationListAll;
