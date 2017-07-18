@@ -37,6 +37,32 @@ var DoPost = function (companyInfo, serviceurl, postData, callback) {
 
 };
 
+var SendAttachment = function(companyInfo, serviceurl, formData, callback)
+{
+    var accessToken = util.format("bearer %s", config.Services.accessToken);
+
+    var options = {
+        url: serviceurl,
+        headers: {
+            'authorization': accessToken,
+            'companyinfo': companyInfo
+        },
+        formData: formData
+    };
+
+    try {
+        request.post(options, function optionalCallback(err, httpResponse, body) {
+            if (err) {
+                console.log('upload failed:', err);
+            }
+            console.log('Server returned: %j', body);
+            callback(err, httpResponse, body);
+        });
+    }catch(ex){
+        callback(ex, undefined, undefined);
+    }
+};
+
 var DoPostFormData = function (companyInfo, serviceurl, formData, callback) {
 
     var accessToken = util.format("bearer %s", config.Services.accessToken);
@@ -156,3 +182,4 @@ module.exports.DoGet = DoGet;
 module.exports.DoDelete = DoDelete;
 module.exports.DoPostFormData = DoPostFormData;
 module.exports.DoPostNotification = DoPostNotification;
+module.exports.SendAttachment = SendAttachment;
