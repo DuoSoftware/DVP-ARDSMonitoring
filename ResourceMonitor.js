@@ -952,6 +952,60 @@ var SetAndPublishResourceStatus = function (req, res) {
 
 };
 
+
+//-------------------------Resource Break Details------------------------------------------------------
+
+var GetResourceBreakSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
+    var emptyArr = [];
+    try
+    {
+        var breakTypeQuery = {
+            where : [{TenantId: tenantId, CompanyId: companyId, Active: true}]
+        };
+
+        dbConn.ResResourceBreakTypes.findAll(breakTypeQuery).then(function(breakTypes)
+        {
+            var resourceListQuery = {
+                attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
+                where : [{StatusType: 'ResourceStatus', Status: 'NotAvailable', createdAt: {between:[startTime, endTime]}}]
+            };
+
+            dbConn.ResResourceStatusDurationInfo.findAll(resourceListQuery).then(function(resourceList)
+            {
+                var breakDetailQuery = {
+                    where : [{StatusType: 'ResourceStatus', Status: 'NotAvailable', createdAt: {between:[startTime, endTime]}}]
+                };
+
+                dbConn.ResResourceStatusDurationInfo.findAll(breakDetailQuery).then(function(breakDetailList)
+                {
+                    callback(null, resourceRejectList);
+
+                }).catch(function(err)
+                {
+                    callback(err, emptyArr);
+                });
+
+            }).catch(function(err)
+            {
+                callback(err, emptyArr);
+            });
+
+
+
+        }).catch(function(err)
+        {
+            callback(err, emptyArr);
+        });
+
+
+    }
+    catch(ex)
+    {
+        callback(ex, emptyArr);
+    }
+};
+
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
