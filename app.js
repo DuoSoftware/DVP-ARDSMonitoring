@@ -778,6 +778,37 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/p
     return next();
 });
 
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/break/details', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+
+        var companyId = parseInt(req.user.company);
+        var tenantId = parseInt(req.user.tenant);
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceBreakDetails] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceBreakSummery(startDate, endDate, companyId, tenantId, res);
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceBreakDetails] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
 
 
 //---------------------------Call Center Monitoring-----------------------------------

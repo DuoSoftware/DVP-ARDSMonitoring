@@ -955,53 +955,158 @@ var SetAndPublishResourceStatus = function (req, res) {
 
 //-------------------------Resource Break Details------------------------------------------------------
 
-var GetResourceBreakSummery = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
-    var emptyArr = [];
+var TimeFormatter = function (mins) {
+
+    var timeStr = '00:00:00';
+    if(mins > 0)
+    {
+        var durationObj = moment.duration(mins * 1000);
+
+        var totalHrs = Math.floor(durationObj.asHours());
+
+        var temphrs = '00';
+
+
+        if(totalHrs > 0 && totalHrs < 10)
+        {
+            temphrs = '0' + totalHrs;
+        }
+        else if(totalHrs >= 10)
+        {
+            temphrs = totalHrs;
+        }
+
+        var tempmins = '00';
+
+        if(durationObj._data.minutes > 0 && durationObj._data.minutes < 10)
+        {
+            tempmins = '0' + durationObj._data.minutes;
+        }
+        else if(durationObj._data.minutes >= 10)
+        {
+            tempmins = durationObj._data.minutes;
+        }
+
+        var tempsec = '00';
+
+        if(durationObj._data.seconds > 0 && durationObj._data.seconds < 10)
+        {
+            tempsec = '0' + durationObj._data.seconds;
+        }
+        else if(durationObj._data.seconds >= 10)
+        {
+            tempsec = durationObj._data.seconds;
+        }
+
+        timeStr = temphrs + ':' + tempmins + ':' + tempsec;
+    }
+
+    return timeStr;
+
+};
+
+var GetResourceBreakSummery = function(startTime, endTime, companyId, tenantId, callback) {
+    var jsonString;
+    var ResultArr = [];
     try
     {
         var breakTypeQuery = {
-            where : [{TenantId: tenantId, CompanyId: companyId, Active: true}]
+            where : [{TenantId: tenantId, CompanyId: companyId, Active: true}],
+            order: [['BreakType']]
         };
 
         dbConn.ResResourceBreakTypes.findAll(breakTypeQuery).then(function(breakTypes)
         {
-            var resourceListQuery = {
-                attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
-                where : [{StatusType: 'ResourceStatus', Status: 'NotAvailable', createdAt: {between:[startTime, endTime]}}]
-            };
-
-            dbConn.ResResourceStatusDurationInfo.findAll(resourceListQuery).then(function(resourceList)
-            {
-                var breakDetailQuery = {
+            if(breakTypes && breakTypes.length > 0){
+                var resourceListQuery = {
+                    attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
                     where : [{StatusType: 'ResourceStatus', Status: 'NotAvailable', createdAt: {between:[startTime, endTime]}}]
                 };
 
-                dbConn.ResResourceStatusDurationInfo.findAll(breakDetailQuery).then(function(breakDetailList)
+                dbConn.ResResourceStatusDurationInfo.findAll(resourceListQuery).then(function(resourceList)
                 {
-                    callback(null, resourceRejectList);
+                    if(resourceList && resourceList.length > 0){
+                        var breakDetailQuery = {
+                            where : [{StatusType: 'ResourceStatus', Status: 'NotAvailable', createdAt: {between:[startTime, endTime]}}]
+                        };
+
+                        dbConn.ResResourceStatusDurationInfo.findAll(breakDetailQuery).then(function(breakDetailList)
+                        {
+                            if(breakDetailList && breakDetailList.length > 0){
+
+                                resourceList.forEach(function (resId) {
+                                    var resBreakSummary = {ResourceId: resId.ResourceId, ResourceName: ''};
+                                    var TotalBreakTime = 0;
+
+                                    breakTypes.forEach(function (breakType) {
+
+                                        var breakName = breakType.BreakType;
+                                        resBreakSummary[breakName] = 0;
+                                        var filteredList = breakDetailList.filter(function (breakDetail) {
+                                            if(breakDetail.Reason === breakName && breakDetail.ResourceId === resId.ResourceId){
+                                                return breakDetail;
+                                            }
+                                        });
+
+                                        if(filteredList && filteredList.length > 0){
+                                            filteredList.forEach(function (item) {
+                                                resBreakSummary[breakName] = resBreakSummary[breakName] + item.Duration;
+                                                TotalBreakTime = TotalBreakTime + item.Duration;
+                                            });
+
+                                            resBreakSummary[breakName] = TimeFormatter(resBreakSummary[breakName]);
+                                        }else{
+                                            resBreakSummary[breakName] = TimeFormatter(resBreakSummary[breakName]);
+                                        }
+
+                                    });
+
+                                    resBreakSummary.TotalBreakTime = TimeFormatter(TotalBreakTime);
+                                    ResultArr.push(resBreakSummary);
+
+                                });
+
+                                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Success", true, ResultArr);
+                                callback.end(jsonString);
+
+                            }else{
+                                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                                callback.end(jsonString);
+                            }
+
+                        }).catch(function(err)
+                        {
+                            jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+                            callback.end(jsonString);
+                        });
+                    }else{
+                        jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                        callback.end(jsonString);
+                    }
+
 
                 }).catch(function(err)
                 {
-                    callback(err, emptyArr);
+                    jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+                    callback.end(jsonString);
                 });
-
-            }).catch(function(err)
-            {
-                callback(err, emptyArr);
-            });
-
-
+            }else{
+                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                callback.end(jsonString);
+            }
 
         }).catch(function(err)
         {
-            callback(err, emptyArr);
+            jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+            callback.end(jsonString);
         });
 
 
     }
     catch(ex)
     {
-        callback(ex, emptyArr);
+        jsonString = messageFormatter.FormatMessage(ex, "Get Break Summary Failed", false, ResultArr);
+        callback.end(jsonString);
     }
 };
 
@@ -1016,3 +1121,4 @@ module.exports.GetResourceRejectCount = GetResourceRejectCount;
 module.exports.PrepareForDownloadResourceRejectSummery = PrepareForDownloadResourceRejectSummery;
 module.exports.SetAndPublishResourceStatus = SetAndPublishResourceStatus;
 module.exports.GetResourceStatusDurationListAll = GetResourceStatusDurationListAll;
+module.exports.GetResourceBreakSummery = GetResourceBreakSummery;

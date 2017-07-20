@@ -10,7 +10,7 @@
     "deepcopy": "^0.6.3",
     "dvp-ardscommon": "^1.5.27",
     "dvp-common": "^0.8.4",
-    "dvp-dbmodels": "^0.8.1",
+    "dvp-dbmodels": "^0.8.7",
     "json2csv": "^3.7.3",
     "moment": "^2.18.1",
     "node-uuid": "^1.4.7",
