@@ -16,64 +16,64 @@ var Q = require('q');
 var moment = require('moment');
 var notificationService = require('./Services/NotificationService');
 
-var ProcessResourceData = function(logkey,resource, callback){
+var ProcessResourceData = function (logkey, resource, callback) {
     //var e = new EventEmitter();
     //process.nextTick(function () {
-        if (resource) {
-            //var count = 0;
-            //for (var i in resourcelist) {
-                //var resource = resourcelist[i].Obj;
-                var companyStr =resource.Company.toString();
-                var tenantStr =resource.Tenant.toString();
-                var concurrencyTags = ["company_" + companyStr, "tenant_" + tenantStr, "resourceid_"+resource.ResourceId,"objtype_ConcurrencyInfo"];
-                redisHandler.SearchObj_T(logkey,concurrencyTags,function(cErr, cResult){
-                        var tempConcurrencyInfos = [];
-                        var pcd = ProcessConcurrencyData(logkey,cResult);
-                        pcd.on('concurrencyInfo', function (obj) {
-                            tempConcurrencyInfos.push(obj);
-                        });
-                        pcd.on('endConcurrencyInfo', function () {
-                            //count++;
-                            resource.ConcurrencyInfo = tempConcurrencyInfos;
-                            callback(resource);
-                        });
-                });
-            //}
-        }
-        else {
-            //e.emit('endResourceInfo');
-            callback(resource);
-        }
+    if (resource) {
+        //var count = 0;
+        //for (var i in resourcelist) {
+        //var resource = resourcelist[i].Obj;
+        var companyStr = resource.Company.toString();
+        var tenantStr = resource.Tenant.toString();
+        var concurrencyTags = ["company_" + companyStr, "tenant_" + tenantStr, "resourceid_" + resource.ResourceId, "objtype_ConcurrencyInfo"];
+        redisHandler.SearchObj_T(logkey, concurrencyTags, function (cErr, cResult) {
+            var tempConcurrencyInfos = [];
+            var pcd = ProcessConcurrencyData(logkey, cResult);
+            pcd.on('concurrencyInfo', function (obj) {
+                tempConcurrencyInfos.push(obj);
+            });
+            pcd.on('endConcurrencyInfo', function () {
+                //count++;
+                resource.ConcurrencyInfo = tempConcurrencyInfos;
+                callback(resource);
+            });
+        });
+        //}
+    }
+    else {
+        //e.emit('endResourceInfo');
+        callback(resource);
+    }
     //});
 
     //return (e);
 };
 
-var GetResourceStatus = function(logkey,resource, callback){
+var GetResourceStatus = function (logkey, resource, callback) {
     var statusKey = util.format("ResourceState:%d:%d:%d", resource.Company, resource.Tenant, resource.ResourceId);
-    redisHandler.GetObj(logkey,statusKey,function(sErr,sResult){
+    redisHandler.GetObj(logkey, statusKey, function (sErr, sResult) {
         resource.Status = JSON.parse(sResult);
         callback(resource);
     });
 };
 
-var ProcessCsData = function(logkey, concurrencyInfo, callback){
-    var csTags = ["company_" + concurrencyInfo.Company.toString(), "tenant_" + concurrencyInfo.Tenant.toString(),"handlingType_"+concurrencyInfo.HandlingType, "resourceid_"+concurrencyInfo.ResourceId,"objtype_CSlotInfo"];
-    redisHandler.SearchObj_T(logkey,csTags,function(csErr, csResult){
+var ProcessCsData = function (logkey, concurrencyInfo, callback) {
+    var csTags = ["company_" + concurrencyInfo.Company.toString(), "tenant_" + concurrencyInfo.Tenant.toString(), "handlingType_" + concurrencyInfo.HandlingType, "resourceid_" + concurrencyInfo.ResourceId, "objtype_CSlotInfo"];
+    redisHandler.SearchObj_T(logkey, csTags, function (csErr, csResult) {
         concurrencyInfo.SlotInfo = csResult;
         callback(concurrencyInfo);
     });
 };
 
-var ProcessConcurrencyData = function(logkey,concurrencyInfos){
+var ProcessConcurrencyData = function (logkey, concurrencyInfos) {
     var e = new EventEmitter();
     process.nextTick(function () {
-        if (Array.isArray(concurrencyInfos) && concurrencyInfos.length>0) {
+        if (Array.isArray(concurrencyInfos) && concurrencyInfos.length > 0) {
             var count = 0;
             for (var i in concurrencyInfos) {
                 var concurrencyInfo = concurrencyInfos[i];
                 //var csTags = ["company_" + concurrencyInfo.Company.toString(), "tenant_" + concurrencyInfo.Tenant.toString(),"handlingType_"+concurrencyInfo.HandlingType, "resourceid_"+concurrencyInfo.ResourceId,"objtype_CSlotInfo"];
-                ProcessCsData(logkey,concurrencyInfo,function(concurrencyInfo){
+                ProcessCsData(logkey, concurrencyInfo, function (concurrencyInfo) {
                     count++;
                     e.emit('concurrencyInfo', concurrencyInfo);
                     if (concurrencyInfos.length === count) {
@@ -99,7 +99,7 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
         else {
             var tempResourceInfos = [];
             var count = 0;
-            if(result && result.length >0) {
+            if (result && result.length > 0) {
                 for (var i in result) {
                     var resource = result[i].Obj;
                     GetResourceStatus(logkey, resource, function (res) {
@@ -112,7 +112,7 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
                         });
                     });
                 }
-            }else{
+            } else {
                 callback(null, tempResourceInfos);
             }
         }
@@ -126,17 +126,110 @@ var GetAllResources = function (logkey, company, tenant, callback) {
     });
 };
 
-var GetResourcesBySkills = function (logkey, company, tenant, skills, callback) {
+var GetResourcesBySkills = function (logkey, company, tenant, skills, mode, task, callback) {
+    var resourceList = [];
+    mode = (mode) ? mode : 'inbound';
+    task = (task) ? task : 'call';
     var searchTags = ["company_" + company, "tenant_" + tenant, "objtype_Resource"];
     var sortedAttributes = commonMethods.sortData(skills);
     for (var k in sortedAttributes) {
         searchTags.push("attribute_" + sortedAttributes[k]);
     }
 
+    if (sortedAttributes && sortedAttributes.length > 0) {
+        SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
+            if (returnlist) {
+                returnlist.forEach(function (resource) {
+                    if (resource && resource.LoginTasks && resource.LoginTasks.length > 0 && resource.LoginTasks.indexOf(task.toUpperCase()) > -1) {
+                        if (resource.Status && resource.Status.Mode.toLowerCase() === mode) {
+                            if (resource.ResourceAttributeInfo && resource.ResourceAttributeInfo.length > 0) {
+                                var skillListAvailability = true;
+                                for (var j = 0; j < sortedAttributes.length; j++) {
+                                    var attribute = sortedAttributes[j];
+                                    var skillAvailability = false;
+                                    for (var i = 0; i < resource.ResourceAttributeInfo.length; i++) {
+                                        var attrInfo = resource.ResourceAttributeInfo[i];
 
-    SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
-        callback(err, returnlist);
-    });
+                                        if (attrInfo && attrInfo.Attribute === attribute && attrInfo.HandlingType.toLowerCase() === task) {
+                                            skillAvailability = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!skillAvailability) {
+                                        skillListAvailability = false;
+                                        break;
+                                    }
+                                }
+
+                                if(skillListAvailability)
+                                    resourceList.push(resource);
+
+                            }
+                        }
+                    }
+                });
+                callback(err, resourceList);
+            } else {
+                callback(err, resourceList);
+            }
+        });
+    } else {
+        callback(undefined, resourceList);
+    }
+};
+
+var GetResourceCountBySkills = function (logkey, company, tenant, skills, task, mode, callback) {
+    var resourceCount = 0;
+    mode = (mode) ? mode : 'inbound';
+    task = (task) ? task : 'call';
+    var searchTags = ["company_" + company, "tenant_" + tenant, "objtype_Resource"];
+    var sortedAttributes = commonMethods.sortData(skills);
+    for (var k in sortedAttributes) {
+        searchTags.push("attribute_" + sortedAttributes[k]);
+    }
+
+    if (sortedAttributes && sortedAttributes.length > 0) {
+        SearchResourceByTags(logkey, searchTags, function (err, returnlist) {
+            if (returnlist) {
+                returnlist.forEach(function (resource) {
+                    if (resource && resource.LoginTasks && resource.LoginTasks.length > 0 && resource.LoginTasks.indexOf(task.toUpperCase()) > -1) {
+                        if (resource.Status && resource.Status.Mode.toLowerCase() === mode) {
+                            if (resource.ResourceAttributeInfo && resource.ResourceAttributeInfo.length > 0) {
+                                var skillListAvailability = true;
+                                for (var j = 0; j < sortedAttributes.length; j++) {
+                                    var attribute = sortedAttributes[j];
+                                    var skillAvailability = false;
+                                    for (var i = 0; i < resource.ResourceAttributeInfo.length; i++) {
+                                        var attrInfo = resource.ResourceAttributeInfo[i];
+
+                                        if (attrInfo && attrInfo.Attribute === attribute && attrInfo.HandlingType.toLowerCase() === task) {
+                                            skillAvailability = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!skillAvailability) {
+                                        skillListAvailability = false;
+                                        break;
+                                    }
+                                }
+
+                                if(skillListAvailability)
+                                    resourceCount++;
+
+                            }
+                        }
+                    }
+                });
+                callback(err, resourceCount);
+            } else {
+                callback(err, resourceCount);
+            }
+        });
+    } else {
+        callback(undefined, resourceCount);
+    }
 };
 
 var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, resClass, resType, resCategory, callback) {
@@ -146,35 +239,26 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
     });
 };
 
-var FileCheckAndDelete = function(company, tenant, filename) {
-    return new Promise(function(fulfill, reject)
-    {
-        fileService.GetFileMetadata(company, tenant, filename, function(err, fileData)
-        {
-            if(fileData)
-            {
-                fileService.DeleteFile(company, tenant, fileData.UniqueId, function (err, delResp)
-                {
-                    if (err)
-                    {
+var FileCheckAndDelete = function (company, tenant, filename) {
+    return new Promise(function (fulfill, reject) {
+        fileService.GetFileMetadata(company, tenant, filename, function (err, fileData) {
+            if (fileData) {
+                fileService.DeleteFile(company, tenant, fileData.UniqueId, function (err, delResp) {
+                    if (err) {
                         reject(err);
 
                     }
-                    else
-                    {
+                    else {
                         fulfill(true);
                     }
 
                 });
             }
-            else
-            {
-                if(err)
-                {
+            else {
+                if (err) {
                     reject(err);
                 }
-                else
-                {
+                else {
                     fulfill(true);
                 }
             }
@@ -201,473 +285,408 @@ var convertToMMSS = function (sec) {
 };
 
 
-var GetResourceStatusDurationList = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, skill, callback) {
+var GetResourceStatusDurationList = function (startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, skill, callback) {
     var emptyArr = [];
-    try
-    {
+    try {
         var offset = (pageNo - 1) * rowCount;
 
-        if(skill)
-        {
+        if (skill) {
             dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt" LIMIT ' + rowCount + ' OFFSET ' + offset + ';')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
-        else
-        {
+        else {
             dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt" LIMIT ' + rowCount + ' OFFSET ' + offset + ';')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
-
 
 
         /*var defaultQuery = {where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}],
-            offset: ((pageNo - 1) * rowCount),
-            limit: rowCount,
-            order: ['createdAt']};
+         offset: ((pageNo - 1) * rowCount),
+         limit: rowCount,
+         order: ['createdAt']};
 
 
-        dbConn.ResResourceStatusDurationInfo.findAll(defaultQuery).then(function(resourceInfoList)
-        {
-            callback(null, resourceInfoList)
+         dbConn.ResResourceStatusDurationInfo.findAll(defaultQuery).then(function(resourceInfoList)
+         {
+         callback(null, resourceInfoList)
 
-        }).catch(function(err)
-        {
-            callback(err, emptyArr)
-        });*/
+         }).catch(function(err)
+         {
+         callback(err, emptyArr)
+         });*/
 
     }
-    catch(ex)
-    {
+    catch (ex) {
         callback(ex, emptyArr);
     }
 };
 
-var GetResourceStatusDurationListAll = function(startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
+var GetResourceStatusDurationListAll = function (startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
     var emptyArr = [];
-    try
-    {
-        if(skill)
-        {
+    try {
+        if (skill) {
             dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt";')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
-        else
-        {
+        else {
             dbConn.SequelizeConn.query('SELECT "DB_RES_ResourceAcwInfos"."Duration", "DB_RES_ResourceAcwInfos"."SessionId", "DB_RES_ResourceAcwInfos"."CompanyId", "DB_RES_ResourceAcwInfos"."TenantId", "DB_RES_ResourceAcwInfos"."createdAt", "CSDB_CallCDRProcesseds"."SipFromUser", "CSDB_CallCDRProcesseds"."SipToUser", "CSDB_CallCDRProcesseds"."DVPCallDirection", "CSDB_CallCDRProcesseds"."AgentSkill", "CSDB_CallCDRProcesseds"."HangupParty" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\')) ORDER BY "DB_RES_ResourceAcwInfos"."createdAt";')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
 
     }
-    catch(ex)
-    {
+    catch (ex) {
         callback(ex, emptyArr);
     }
 };
 
-var GetResourceStatusDurationSummery = function(startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
+var GetResourceStatusDurationSummery = function (startTime, endTime, resourceId, companyId, tenantId, skill, callback) {
     var emptyArr = [];
-    try
-    {
-        if(skill)
-        {
+    try {
+        if (skill) {
             dbConn.SequelizeConn.query('SELECT COUNT("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwSessions", SUM("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwTime", AVG("DB_RES_ResourceAcwInfos"."Duration") AS "AverageAcwTime" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "CSDB_CallCDRProcesseds"."AgentSkill" = \'' + skill + '\' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\'));')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0][0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
-        else
-        {
+        else {
             dbConn.SequelizeConn.query('SELECT COUNT("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwSessions", SUM("DB_RES_ResourceAcwInfos"."Duration") AS "TotalAcwTime", AVG("DB_RES_ResourceAcwInfos"."Duration") AS "AverageAcwTime" FROM "DB_RES_ResourceAcwInfos" INNER JOIN "CSDB_CallCDRProcesseds" ON ("DB_RES_ResourceAcwInfos"."SessionId" = "CSDB_CallCDRProcesseds"."Uuid") WHERE (("DB_RES_ResourceAcwInfos"."CompanyId" = ' + companyId + ' AND "DB_RES_ResourceAcwInfos"."TenantId" = ' + tenantId + ' AND "DB_RES_ResourceAcwInfos"."ResourceId" = ' + resourceId + ' AND "DB_RES_ResourceAcwInfos"."createdAt" BETWEEN \'' + startTime + '\' AND \'' + endTime + '\'));')
-                .then(function(acwInfo)
-                {
-                    if(acwInfo && acwInfo.length > 0)
-                    {
+                .then(function (acwInfo) {
+                    if (acwInfo && acwInfo.length > 0) {
                         callback(null, acwInfo[0][0])
                     }
-                    else
-                    {
+                    else {
                         callback(null, emptyArr)
                     }
                 })
-                .catch(function(err)
-                {
+                .catch(function (err) {
                     callback(err, emptyArr)
                 });
         }
 
 
         /*var defaultQuery = {
-            attributes: [[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('*')), 'TotalAcwSessions'],[dbConn.SequelizeConn.fn('SUM', dbConn.SequelizeConn.col('Duration')), 'TotalAcwTime'],[dbConn.SequelizeConn.fn('AVG', dbConn.SequelizeConn.col('Duration')), 'AverageAcwTime']],
-            where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}]
-        };
+         attributes: [[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('*')), 'TotalAcwSessions'],[dbConn.SequelizeConn.fn('SUM', dbConn.SequelizeConn.col('Duration')), 'TotalAcwTime'],[dbConn.SequelizeConn.fn('AVG', dbConn.SequelizeConn.col('Duration')), 'AverageAcwTime']],
+         where :[{CompanyId: companyId, TenantId: tenantId, ResourceId: resourceId, StatusType: 'SloatStatus', Status: 'AfterWork', createdAt: {between:[startTime, endTime]}}]
+         };
 
 
-        dbConn.ResResourceStatusDurationInfo.find(defaultQuery).then(function(resourceInfoList)
-        {
-            callback(null, resourceInfoList)
+         dbConn.ResResourceStatusDurationInfo.find(defaultQuery).then(function(resourceInfoList)
+         {
+         callback(null, resourceInfoList)
 
-        }).catch(function(err)
-        {
-            callback(err, emptyArr)
-        });*/
+         }).catch(function(err)
+         {
+         callback(err, emptyArr)
+         });*/
 
     }
-    catch(ex)
-    {
+    catch (ex) {
         callback(ex, emptyArr);
     }
 };
 
-var GetResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback) {
+var GetResourceRejectSummery = function (startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, callback) {
     var emptyArr = [];
-    try
-    {
+    try {
         var rejectSessionQuery = {
             attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'SessionId']],
-            where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}],
+            where: [{ResourceId: resourceId, createdAt: {between: [startTime, endTime]}}],
             offset: ((pageNo - 1) * rowCount),
             limit: rowCount
         };
 
 
-
-
-        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessionList)
-        {
+        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function (rejectSessionList) {
             var sessionIdList = [];
-            rejectSessionList.forEach(function(session){
-                if(session && session.dataValues && session.dataValues.SessionId) {
+            rejectSessionList.forEach(function (session) {
+                if (session && session.dataValues && session.dataValues.SessionId) {
                     sessionIdList.push(session.dataValues.SessionId);
                 }
             });
 
             var rejectDetailQuery = {
-                attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
-                where : [{SessionId: {$in:sessionIdList}, ResourceId: resourceId}],
+                attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId', [dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                where: [{SessionId: {$in: sessionIdList}, ResourceId: resourceId}],
                 group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
             };
 
-            dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
-            {
+            dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function (resourceRejectList) {
                 callback(null, resourceRejectList)
 
-            }).catch(function(err)
-            {
+            }).catch(function (err) {
                 callback(err, emptyArr)
             });
 
-        }).catch(function(err)
-        {
+        }).catch(function (err) {
             callback(err, emptyArr)
         });
 
 
-
-
     }
-    catch(ex)
-    {
+    catch (ex) {
         callback(ex, emptyArr);
     }
 };
 
-var GetResourceRejectCount = function(startTime, endTime, resourceId, companyId, tenantId, callback) {
-    try
-    {
+var GetResourceRejectCount = function (startTime, endTime, resourceId, companyId, tenantId, callback) {
+    try {
         var rejectSessionQuery = {
             attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'TotalRejectedSessions']],
-            where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}]
+            where: [{ResourceId: resourceId, createdAt: {between: [startTime, endTime]}}]
         };
 
 
-
-
-        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessions)
-        {
-            if(rejectSessions){
+        dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function (rejectSessions) {
+            if (rejectSessions) {
                 callback(null, rejectSessions.length)
-            }else {
+            } else {
                 callback(null, 0);
             }
 
-        }).catch(function(err)
-        {
+        }).catch(function (err) {
             callback(err, 0)
         });
 
 
-
-
     }
-    catch(ex)
-    {
+    catch (ex) {
         callback(ex, 0);
     }
 };
 
-var PrepareForDownloadResourceRejectSummery = function(startTime, endTime, resourceId, companyId, tenantId, res) {
+var PrepareForDownloadResourceRejectSummery = function (startTime, endTime, resourceId, companyId, tenantId, res) {
     var jsonString;
-    try
-    {
+    try {
         var fileName = util.format('MissedCallReport_%s.csv', resourceId);
 
-        FileCheckAndDelete(companyId, tenantId, fileName).then(function(chkResult) {
-                if(chkResult) {
+        FileCheckAndDelete(companyId, tenantId, fileName).then(function (chkResult) {
+            if (chkResult) {
 
-                    fileService.FileUploadReserve(companyId, tenantId, fileName, function(err, fileResResp)
-                    {
-                        if (err) {
-                            jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                fileService.FileUploadReserve(companyId, tenantId, fileName, function (err, fileResResp) {
+                    if (err) {
+                        jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                        logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
+                        res.end(jsonString);
+                    } else {
+                        if (fileResResp) {
+                            var uniqueId = fileResResp.Result;
+
+                            //should respose end
+                            jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, fileName);
                             logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
                             res.end(jsonString);
-                        } else {
-                            if(fileResResp) {
-                                var uniqueId = fileResResp.Result;
-
-                                //should respose end
-                                jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, fileName);
-                                logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
-                                res.end(jsonString);
 
 
-                                var rejectSessionQuery = {
-                                    attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'SessionId']],
-                                    where : [{ResourceId: resourceId, createdAt: {between:[startTime, endTime]}}]
+                            var rejectSessionQuery = {
+                                attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('SessionId')), 'SessionId']],
+                                where: [{ResourceId: resourceId, createdAt: {between: [startTime, endTime]}}]
+                            };
+
+                            dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function (rejectSessionList) {
+                                var sessionIdList = [];
+                                rejectSessionList.forEach(function (session) {
+                                    if (session && session.dataValues && session.dataValues.SessionId) {
+                                        sessionIdList.push(session.dataValues.SessionId);
+                                    }
+                                });
+
+                                var rejectDetailQuery = {
+                                    attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId', [dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
+                                    where: [{SessionId: {$in: sessionIdList}, ResourceId: resourceId}],
+                                    group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
                                 };
 
-                                dbConn.ResResourceTaskRejectInfo.findAll(rejectSessionQuery).then(function(rejectSessionList)
-                                {
-                                    var sessionIdList = [];
-                                    rejectSessionList.forEach(function(session){
-                                        if(session && session.dataValues && session.dataValues.SessionId) {
-                                            sessionIdList.push(session.dataValues.SessionId);
-                                        }
-                                    });
+                                dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function (resourceRejectList) {
+                                    cdrProcessor.GetCdrBySessions(companyId, tenantId, sessionIdList, function (err, response) {
+                                        if (err) {
+                                            fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                                if (err) {
+                                                    logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                }
+                                            });
+                                        } else {
+                                            if (response.IsSuccess) {
 
-                                    var rejectDetailQuery = {
-                                        attributes: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId',[dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']],
-                                        where : [{SessionId: {$in:sessionIdList}, ResourceId: resourceId}],
-                                        group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
-                                    };
+                                                var newRecords = resourceRejectList.map(function (missedCallRecord) {
+                                                    if (response.Result) {
+                                                        for (var i = 0; i < response.Result.length; i++) {
+                                                            var cdrRecord = response.Result[i];
+                                                            if (cdrRecord.Uuid === missedCallRecord.SessionId) {
+                                                                cdrRecord.QueueSec = convertToMMSS(cdrRecord.QueueSec);
+                                                                if (cdrRecord.DVPCallDirection === "outbound") {
+                                                                    var oriFrom = deepcopy(cdrRecord.SipFromUser);
+                                                                    var oriTo = deepcopy(cdrRecord.SipToUser);
+                                                                    cdrRecord.SipFromUser = oriTo;
+                                                                    cdrRecord.SipToUser = oriFrom;
+                                                                }
+                                                                missedCallRecord.RejectCount = missedCallRecord.dataValues.RejectCount;
+                                                                missedCallRecord.CreatedTime = cdrRecord.CreatedTime;
+                                                                missedCallRecord.AgentSkill = cdrRecord.AgentSkill;
+                                                                missedCallRecord.QueueSec = cdrRecord.QueueSec;
+                                                                missedCallRecord.SipFromUser = cdrRecord.SipFromUser;
+                                                                missedCallRecord.SipToUser = cdrRecord.SipToUser;
+                                                                missedCallRecord.AgentAnswered = cdrRecord.AgentAnswered;
+                                                                missedCallRecord.RecievedBy = cdrRecord.RecievedBy;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
 
-                                    dbConn.ResResourceTaskRejectInfo.findAll(rejectDetailQuery).then(function(resourceRejectList)
-                                    {
-                                        cdrProcessor.GetCdrBySessions(companyId, tenantId, sessionIdList, function (err, response) {
-                                            if (err) {
-                                                fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                                    if(err) {
+                                                    return missedCallRecord;
+                                                });
+
+
+                                                var tagHeaders = ['SessionId', 'Call Time', 'Skill', 'Queue Duration', 'Reject Count', 'From', 'To', 'Agent Answered', 'Received By'];
+                                                var tagOrder = ['SessionId', 'CreatedTime', 'AgentSkill', 'QueueSec', 'RejectCount', 'SipFromUser', 'SipToUser', 'AgentAnswered', 'RecievedBy'];
+
+
+                                                var csvFileData = json2csv({
+                                                    data: newRecords,
+                                                    fields: tagOrder,
+                                                    fieldNames: tagHeaders
+                                                });
+
+                                                fs.writeFile(fileName, csvFileData, function (err) {
+                                                    if (err) {
+                                                        fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                                            if (err) {
+                                                                logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                            }
+                                                        });
+                                                    } else {
+
+                                                        var formData = {
+                                                            class: 'MISSEDCALL',
+                                                            fileCategory: 'REPORTS',
+                                                            display: fileName,
+                                                            filename: fileName,
+                                                            attachments: [
+                                                                fs.createReadStream(fileName)
+                                                            ]
+
+                                                        };
+
+                                                        fileService.UploadFile(companyId, tenantId, uniqueId, formData, function (err, uploadResp) {
+                                                            fs.unlink(fileName);
+                                                            if (!err && uploadResp) {
+
+                                                            } else {
+                                                                fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                                                    if (err) {
+                                                                        logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                                                    }
+                                                                });
+                                                            }
+
+                                                        });
+
+                                                    }
+                                                });
+
+                                            } else {
+                                                fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                                    if (err) {
                                                         logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
                                                     }
                                                 });
-                                            } else {
-                                                if(response.IsSuccess)
-                                                {
-
-                                                    var newRecords = resourceRejectList.map(function (missedCallRecord) {
-                                                        if(response.Result) {
-                                                            for (var i = 0; i < response.Result.length; i++) {
-                                                                var cdrRecord = response.Result[i];
-                                                                if (cdrRecord.Uuid === missedCallRecord.SessionId) {
-                                                                    cdrRecord.QueueSec = convertToMMSS(cdrRecord.QueueSec);
-                                                                    if (cdrRecord.DVPCallDirection === "outbound") {
-                                                                        var oriFrom = deepcopy(cdrRecord.SipFromUser);
-                                                                        var oriTo = deepcopy(cdrRecord.SipToUser);
-                                                                        cdrRecord.SipFromUser = oriTo;
-                                                                        cdrRecord.SipToUser = oriFrom;
-                                                                    }
-                                                                    missedCallRecord.RejectCount = missedCallRecord.dataValues.RejectCount;
-                                                                    missedCallRecord.CreatedTime = cdrRecord.CreatedTime;
-                                                                    missedCallRecord.AgentSkill = cdrRecord.AgentSkill;
-                                                                    missedCallRecord.QueueSec = cdrRecord.QueueSec;
-                                                                    missedCallRecord.SipFromUser = cdrRecord.SipFromUser;
-                                                                    missedCallRecord.SipToUser = cdrRecord.SipToUser;
-                                                                    missedCallRecord.AgentAnswered = cdrRecord.AgentAnswered;
-                                                                    missedCallRecord.RecievedBy = cdrRecord.RecievedBy;
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-
-                                                        return missedCallRecord;
-                                                    });
-
-
-                                                    var tagHeaders = ['SessionId', 'Call Time', 'Skill', 'Queue Duration', 'Reject Count', 'From', 'To', 'Agent Answered', 'Received By'];
-                                                    var tagOrder = ['SessionId', 'CreatedTime', 'AgentSkill', 'QueueSec', 'RejectCount', 'SipFromUser', 'SipToUser', 'AgentAnswered', 'RecievedBy'];
-
-
-                                                    var csvFileData = json2csv({ data: newRecords, fields: tagOrder, fieldNames : tagHeaders });
-
-                                                    fs.writeFile(fileName, csvFileData, function(err) {
-                                                        if (err) {
-                                                            fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                                                if(err) {
-                                                                    logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
-                                                                }
-                                                            });
-                                                        } else {
-
-                                                            var formData = {
-                                                                class: 'MISSEDCALL',
-                                                                fileCategory:'REPORTS',
-                                                                display: fileName,
-                                                                filename: fileName,
-                                                                attachments: [
-                                                                    fs.createReadStream(fileName)
-                                                                ]
-
-                                                            };
-
-                                                            fileService.UploadFile(companyId, tenantId, uniqueId, formData, function(err, uploadResp) {
-                                                                fs.unlink(fileName);
-                                                                if(!err && uploadResp) {
-
-                                                                } else {
-                                                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                                                        if(err) {
-                                                                            logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
-                                                                        }
-                                                                    });
-                                                                }
-
-                                                            });
-
-                                                        }
-                                                    });
-
-                                                } else {
-                                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                                        if(err) {
-                                                            logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
-                                                        }
-                                                    });
-                                                }
                                             }
-                                        });
-
-                                    }).catch(function(err)
-                                    {
-                                        fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                            if(err) {
-                                                logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
-                                            }
-                                        });
+                                        }
                                     });
 
-                                }).catch(function(err)
-                                {
-                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function(err, delData){
-                                        if(err) {
+                                }).catch(function (err) {
+                                    fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                        if (err) {
                                             logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
                                         }
                                     });
                                 });
 
-                            } else {
+                            }).catch(function (err) {
+                                fileService.DeleteFile(companyId, tenantId, uniqueId, function (err, delData) {
+                                    if (err) {
+                                        logger.error('[DVP-CDRProcessor.DownloadCDR] - Delete Failed : %s', err);
+                                    }
+                                });
+                            });
 
-                                jsonString = messageFormatter.FormatMessage(new Error('Failed to reserve file'), "ERROR", false, null);
-                                logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
-                                res.end(jsonString);
+                        } else {
 
-                            }
+                            jsonString = messageFormatter.FormatMessage(new Error('Failed to reserve file'), "ERROR", false, null);
+                            logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
+                            res.end(jsonString);
 
                         }
-                    });
 
-                }else {
-                    jsonString = messageFormatter.FormatMessage(new Error('Error deleting file'), "ERROR", false, null);
-                    logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
-                    res.end(jsonString);
-                }
-            }).catch(function(err)
-            {
-                jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+                    }
+                });
+
+            } else {
+                jsonString = messageFormatter.FormatMessage(new Error('Error deleting file'), "ERROR", false, null);
                 logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
                 res.end(jsonString);
-            });
-
-
-
-
+            }
+        }).catch(function (err) {
+            jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
+            logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
+            res.end(jsonString);
+        });
 
 
     }
-    catch(ex)
-    {
+    catch (ex) {
         jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, null);
         logger.debug('[DVP-CDRProcessor.PrepareDownloadAbandon] - API RESPONSE : %s', jsonString);
         res.end(jsonString);
     }
 };
-
 
 
 //-------------------------Resource Status Event Publish-----------------------------------------------
@@ -680,14 +699,14 @@ var getObjByKey = function (key) {
             if (err) {
                 deferred.reject(err);
             } else {
-                if(result) {
+                if (result) {
                     deferred.resolve(JSON.parse(result));
-                }else{
+                } else {
                     deferred.reject(new Error('No Value Found'));
                 }
             }
         });
-    }catch(ex){
+    } catch (ex) {
         deferred.reject(ex);
     }
     return deferred.promise;
@@ -704,14 +723,14 @@ var getMultipleObjByKeys = function (keys) {
                 var convertedResults = [];
                 results.forEach(function (result) {
 
-                    if(result){
+                    if (result) {
                         convertedResults.push(JSON.parse(result));
                     }
                 });
                 deferred.resolve(convertedResults);
             }
         });
-    }catch(ex){
+    } catch (ex) {
         deferred.reject(ex);
     }
     return deferred.promise;
@@ -723,14 +742,14 @@ var SetAndPublishResourceStatus = function (req, res) {
     var tenant = parseInt(req.user.tenant);
     var resourceId = req.params.resourceId;
 
-    var resourceName = req.query.resourceName? req.query.resourceName: undefined;
-    var statusType = req.query.statusType? req.query.statusType: undefined;
-    var removeTask = req.query.task? req.query.task: undefined;
+    var resourceName = req.query.resourceName ? req.query.resourceName : undefined;
+    var statusType = req.query.statusType ? req.query.statusType : undefined;
+    var removeTask = req.query.task ? req.query.task : undefined;
 
     res.writeHead(202);
     res.end(messageFormatter.FormatMessage(undefined, "Resource status publish accepted by server", true, undefined));
 
-    if(statusType && resourceName && statusType === 'removeResource'){
+    if (statusType && resourceName && statusType === 'removeResource') {
 
         var resourceData = {
             resourceId: resourceId,
@@ -739,7 +758,7 @@ var SetAndPublishResourceStatus = function (req, res) {
         var resource_postData = {message: resourceData, From: 'ArdsMonitoringService'};
         notificationService.RequestToNotify(company, tenant, 'ARDS:RemoveResource', 'RemoveResource', resource_postData);
 
-    }else {
+    } else {
 
 
         var resourceKey = util.format('Resource:%d:%d:%s', company, tenant, resourceId);
@@ -770,7 +789,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                     resourceObj.Status = undefined;
                 }
 
-                if(statusType && removeTask && resourceName && statusType === 'removeTask'){
+                if (statusType && removeTask && resourceName && statusType === 'removeTask') {
 
                     var date = new Date();
 
@@ -788,7 +807,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                     var task_postData = {message: taskData, From: 'ArdsMonitoringService'};
                     notificationService.RequestToNotify(company, tenant, 'ARDS:RemoveResourceTask', 'RemoveResourceTask', task_postData);
 
-                }else {
+                } else {
 
                     if (resourceObj.LoginTasks && resourceObj.LoginTasks.length > 0 && resourceObj.Status) {
 
@@ -952,6 +971,158 @@ var SetAndPublishResourceStatus = function (req, res) {
 
 };
 
+
+//-------------------------Resource Break Details------------------------------------------------------
+
+var TimeFormatter = function (mins) {
+
+    var timeStr = '00:00:00';
+    if (mins > 0) {
+        var durationObj = moment.duration(mins * 1000);
+
+        var totalHrs = Math.floor(durationObj.asHours());
+
+        var temphrs = '00';
+
+
+        if (totalHrs > 0 && totalHrs < 10) {
+            temphrs = '0' + totalHrs;
+        }
+        else if (totalHrs >= 10) {
+            temphrs = totalHrs;
+        }
+
+        var tempmins = '00';
+
+        if (durationObj._data.minutes > 0 && durationObj._data.minutes < 10) {
+            tempmins = '0' + durationObj._data.minutes;
+        }
+        else if (durationObj._data.minutes >= 10) {
+            tempmins = durationObj._data.minutes;
+        }
+
+        var tempsec = '00';
+
+        if (durationObj._data.seconds > 0 && durationObj._data.seconds < 10) {
+            tempsec = '0' + durationObj._data.seconds;
+        }
+        else if (durationObj._data.seconds >= 10) {
+            tempsec = durationObj._data.seconds;
+        }
+
+        timeStr = temphrs + ':' + tempmins + ':' + tempsec;
+    }
+
+    return timeStr;
+
+};
+
+var GetResourceBreakSummery = function (startTime, endTime, companyId, tenantId, callback) {
+    var jsonString;
+    var ResultArr = [];
+    try {
+        var breakTypeQuery = {
+            where: [{TenantId: tenantId, CompanyId: companyId, Active: true}],
+            order: [['BreakType']]
+        };
+
+        dbConn.ResResourceBreakTypes.findAll(breakTypeQuery).then(function (breakTypes) {
+            if (breakTypes && breakTypes.length > 0) {
+                var resourceListQuery = {
+                    attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
+                    where: [{
+                        StatusType: 'ResourceStatus',
+                        Status: 'NotAvailable',
+                        createdAt: {between: [startTime, endTime]}
+                    }]
+                };
+
+                dbConn.ResResourceStatusDurationInfo.findAll(resourceListQuery).then(function (resourceList) {
+                    if (resourceList && resourceList.length > 0) {
+                        var breakDetailQuery = {
+                            where: [{
+                                StatusType: 'ResourceStatus',
+                                Status: 'NotAvailable',
+                                createdAt: {between: [startTime, endTime]}
+                            }]
+                        };
+
+                        dbConn.ResResourceStatusDurationInfo.findAll(breakDetailQuery).then(function (breakDetailList) {
+                            if (breakDetailList && breakDetailList.length > 0) {
+
+                                resourceList.forEach(function (resId) {
+                                    var resBreakSummary = {ResourceId: resId.ResourceId, ResourceName: ''};
+                                    var TotalBreakTime = 0;
+
+                                    breakTypes.forEach(function (breakType) {
+
+                                        var breakName = breakType.BreakType;
+                                        resBreakSummary[breakName] = 0;
+                                        var filteredList = breakDetailList.filter(function (breakDetail) {
+                                            if (breakDetail.Reason === breakName && breakDetail.ResourceId === resId.ResourceId) {
+                                                return breakDetail;
+                                            }
+                                        });
+
+                                        if (filteredList && filteredList.length > 0) {
+                                            filteredList.forEach(function (item) {
+                                                resBreakSummary[breakName] = resBreakSummary[breakName] + item.Duration;
+                                                TotalBreakTime = TotalBreakTime + item.Duration;
+                                            });
+
+                                            resBreakSummary[breakName] = TimeFormatter(resBreakSummary[breakName]);
+                                        } else {
+                                            resBreakSummary[breakName] = TimeFormatter(resBreakSummary[breakName]);
+                                        }
+
+                                    });
+
+                                    resBreakSummary.TotalBreakTime = TimeFormatter(TotalBreakTime);
+                                    ResultArr.push(resBreakSummary);
+
+                                });
+
+                                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Success", true, ResultArr);
+                                callback.end(jsonString);
+
+                            } else {
+                                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                                callback.end(jsonString);
+                            }
+
+                        }).catch(function (err) {
+                            jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+                            callback.end(jsonString);
+                        });
+                    } else {
+                        jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                        callback.end(jsonString);
+                    }
+
+
+                }).catch(function (err) {
+                    jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+                    callback.end(jsonString);
+                });
+            } else {
+                jsonString = messageFormatter.FormatMessage(undefined, "Get Break Summary Failed", false, ResultArr);
+                callback.end(jsonString);
+            }
+
+        }).catch(function (err) {
+            jsonString = messageFormatter.FormatMessage(err, "Get Break Summary Failed", false, ResultArr);
+            callback.end(jsonString);
+        });
+
+
+    }
+    catch (ex) {
+        jsonString = messageFormatter.FormatMessage(ex, "Get Break Summary Failed", false, ResultArr);
+        callback.end(jsonString);
+    }
+};
+
+
 module.exports.GetAllResources = GetAllResources;
 module.exports.GetResourceFilterByClassTypeCategory = GetResourceFilterByClassTypeCategory;
 module.exports.GetResourcesBySkills = GetResourcesBySkills;
@@ -962,3 +1133,5 @@ module.exports.GetResourceRejectCount = GetResourceRejectCount;
 module.exports.PrepareForDownloadResourceRejectSummery = PrepareForDownloadResourceRejectSummery;
 module.exports.SetAndPublishResourceStatus = SetAndPublishResourceStatus;
 module.exports.GetResourceStatusDurationListAll = GetResourceStatusDurationListAll;
+module.exports.GetResourceBreakSummery = GetResourceBreakSummery;
+module.exports.GetResourceCountBySkills = GetResourceCountBySkills;

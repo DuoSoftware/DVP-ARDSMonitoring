@@ -335,13 +335,13 @@ server.post('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resourc
     try {
         var company = req.user.company;
         var tenant = req.user.tenant;
-        var data = req.params;
+        var data = req.query;
         var objkey = util.format('resource-GetResourcesBySkills:company_%s:tenant_%s', company, tenant);
         var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
 
         infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
         infoLogger.ReqResLogger.log('info', '%s Start- resource/GetResourcesBySkills #', logkey, req.body);
-        resourceMonitor.GetResourcesBySkills(logkey, company, tenant, req.body.skills, function (err, result) {
+        resourceMonitor.GetResourcesBySkills(logkey, company, tenant, req.body.skills, data.mode, data.task, function (err, result) {
             if (err) {
                 infoLogger.ReqResLogger.log('error', '%s End- resource/GetResourcesBySkills :: Error: %s #', logkey, err);
                 var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
@@ -350,6 +350,38 @@ server.post('/DVP/API/:version/ARDS/MONITORING/resources',authorization({resourc
             }
             else {
                 infoLogger.ReqResLogger.log('info', '%s End- resource/GetResourcesBySkills :: Result: %s #', logkey, 'success');
+                var jsonString = messageFormatter.FormatMessage(err, "get resources success", true, result);
+                res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+        });
+    } catch (ex2) {
+        var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
+        res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+        res.end(jsonString);
+    }
+    return next();
+});
+
+server.post('/DVP/API/:version/ARDS/MONITORING/resources/count',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
+    try {
+        var company = req.user.company;
+        var tenant = req.user.tenant;
+        var data = req.query;
+        var objkey = util.format('resource-GetResourcesBySkills:company_%s:tenant_%s', company, tenant);
+        var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
+
+        infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
+        infoLogger.ReqResLogger.log('info', '%s Start- resource/GetResourcesBySkills #', logkey, req.body);
+        resourceMonitor.GetResourceCountBySkills(logkey, company, tenant, req.body.skills, data.task, data.mode, function (err, result) {
+            if (err) {
+                infoLogger.ReqResLogger.log('error', '%s End- resource/GetResourceCountBySkills :: Error: %s #', logkey, err);
+                var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
+                res.writeHead(500, {'Content-Type': 'application/json; charset=utf-8'});
+                res.end(jsonString);
+            }
+            else {
+                infoLogger.ReqResLogger.log('info', '%s End- resource/GetResourceCountBySkills :: Result: %s #', logkey, 'success');
                 var jsonString = messageFormatter.FormatMessage(err, "get resources success", true, result);
                 res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
                 res.end(jsonString);
@@ -772,6 +804,37 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/p
     {
         var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
         logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - API RESPONSE : %s', jsonString);
+        res.end(jsonString);
+    }
+
+    return next();
+});
+
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/break/details', authorization({resource:"ardsresource", action:"read"}), function(req, res, next) {
+    var emptyArr = [];
+    try
+    {
+        var startDate = req.query.startDate;
+        var endDate = req.query.endDate;
+
+        var companyId = parseInt(req.user.company);
+        var tenantId = parseInt(req.user.tenant);
+
+        if (!companyId || !tenantId)
+        {
+            throw new Error("Invalid company or tenant");
+        }
+
+        logger.debug('[DVP-ARDSMonitoring.GetResourceBreakDetails] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
+
+
+        resourceMonitor.GetResourceBreakSummery(startDate, endDate, companyId, tenantId, res);
+
+    }
+    catch(ex)
+    {
+        var jsonString = messageFormatter.FormatMessage(ex, "ERROR", false, emptyArr);
+        logger.debug('[DVP-ARDSMonitoring.GetResourceBreakDetails] - API RESPONSE : %s', jsonString);
         res.end(jsonString);
     }
 
