@@ -872,7 +872,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                                     slotState: slot.State,
                                                     slotMode: resourceObj.Status.Mode,
                                                     LastReservedTime: moment(slot.StateChangeTime).isBefore(moment(resourceObj.Status.StateChangeTime))? moment(resourceObj.Status.StateChangeTime).format("h:mm a"): moment(slot.StateChangeTime).format("h:mm a"),
-                                                    LastReservedTimeT: slot.StateChangeTime,
+                                                    LastReservedTimeT: moment(slot.StateChangeTime).isBefore(moment(resourceObj.Status.StateChangeTime))? resourceObj.Status.StateChangeTime: slot.StateChangeTime,
                                                     other: null
                                                 });
                                             });
