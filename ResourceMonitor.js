@@ -871,7 +871,7 @@ var SetAndPublishResourceStatus = function (req, res) {
                                                     task: task,
                                                     slotState: slot.State,
                                                     slotMode: resourceObj.Status.Mode,
-                                                    LastReservedTime: moment(slot.StateChangeTime).format("h:mm a"),
+                                                    LastReservedTime: moment(slot.StateChangeTime).isBefore(moment(resourceObj.Status.StateChangeTime))? moment(resourceObj.Status.StateChangeTime).format("h:mm a"): moment(slot.StateChangeTime).format("h:mm a"),
                                                     LastReservedTimeT: slot.StateChangeTime,
                                                     other: null
                                                 });
