@@ -160,7 +160,7 @@ var GenerateQueueName = function(logKey, queueId, callback){
 };
 
 var SetQueueName = function(summary, callback){
-    var queue = queueId.replace(/-/g, ":");
+    var queue = summary.Queue.replace(/-/g, ":");
     var queueParams = queue.split(':');
     var queuePriority = queueParams.pop();
     var queueSettingId = queueParams.join(':');
