@@ -8,7 +8,7 @@
     "bluebird": "^3.4.7",
     "config": "^1.19.0",
     "deepcopy": "^0.6.3",
-    "dvp-ardscommon": "^1.5.27",
+    "dvp-ardscommon": "2.0.0",
     "dvp-common": "1.1.0",
     "dvp-dbmodels": "2.1.0",
     "json2csv": "^3.7.3",
