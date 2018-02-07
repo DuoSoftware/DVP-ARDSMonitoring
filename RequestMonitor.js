@@ -160,14 +160,23 @@ var GenerateQueueName = function(logKey, queueId, callback){
 };
 
 var SetQueueName = function(summary, callback){
-    var qArray =  summary.Queue.split("-");
-    var qId = util.format("%s",qArray.join(":"));
-    redisHandler.GetHashValue("GetQueueName", "QueueNameHash", qId, function(err, name){
+    var queue = summary.Queue.replace(/-/g, ":");
+    var queueParams = queue.split(':');
+    var queuePriority = queueParams.pop();
+    var queueSettingId = queueParams.join(':');
+    redisHandler.GetHashValue("GetQueueName", "QueueNameHash", queueSettingId, function(err, result){
         if(err){
             callback(summary);
         }else{
-            if(name) {
-                summary.Queue = name;
+            if(result) {
+
+                var queueSetting = JSON.parse(result);
+
+                if(queueSetting && queueSetting.QueueName) {
+                    var queueName = queueSetting.QueueName;
+                    queueName = (queuePriority !== '0')? util.format('%s-P%s', queueName, queuePriority): queueName;
+                    summary.Queue = queueName;
+                }
             }
             callback(summary);
         }
