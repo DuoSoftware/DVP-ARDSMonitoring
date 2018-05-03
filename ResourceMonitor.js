@@ -753,7 +753,8 @@ var SetAndPublishResourceStatus = function (req, res) {
 
         var resourceData = {
             resourceId: resourceId,
-            resourceName: resourceName
+            resourceName: resourceName,
+            businessUnit: 'all'
         };
         var resource_postData = {message: resourceData, From: 'ArdsMonitoringService'};
         notificationService.RequestToNotify(company, tenant, 'ARDS:RemoveResource', 'RemoveResource', resource_postData);
