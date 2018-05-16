@@ -301,6 +301,14 @@ var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task,
 
                     });
 
+                    var statuskey = util.format('ResourceState:%s:%s:%s', company, tenant, resourceId);
+                    redisHandler.GetObj(logKey, statuskey, function (err, result) {
+                        logger.info('info', '%s Finished GetResourceState. Result: %s', logKey, result);
+                        if (result) {
+                            resourceObj.ResourceStatus = result
+                        }
+                    });
+
                 } else {
 
                     callback(err, resourceObj, vid);
