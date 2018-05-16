@@ -264,7 +264,7 @@ var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task,
 
                         if (cObjs && cObjs.length > 0) {
 
-                            var tempConcurrencyInfo = [];
+                            var tempConcurrencyInfo = {};
                             var tempSlotInfo = [];
                             for (var i = 0; i < cObjs.length; i++) {
 
@@ -274,22 +274,23 @@ var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task,
                                     tempSlotInfo.push(cObj);
                                 } else {
                                     cObj.SlotInfo = [];
-                                    tempConcurrencyInfo.push(cObj);
+                                    tempConcurrencyInfo = cObj;
                                 }
 
                             }
 
 
-                            for (var j = 0; j < tempConcurrencyInfo.length; j++) {
-                                var tci = tempConcurrencyInfo[j];
+                            //for (var j = 0; j < tempConcurrencyInfo.length; j++) {
+                            if(tempConcurrencyInfo) {
 
                                 for (var k = 0; k < tempSlotInfo.length; k++) {
                                     var rsi = tempSlotInfo[k];
-                                    if (rsi.HandlingType === tci.HandlingType) {
-                                        tci.SlotInfo.push(rsi);
+                                    if (rsi.HandlingType === tempConcurrencyInfo.HandlingType) {
+                                        tempConcurrencyInfo.SlotInfo.push(rsi);
                                     }
                                 }
                             }
+                            //}
 
 
                             resourceObj.ConcurrencyInfo = tempConcurrencyInfo;
