@@ -239,6 +239,81 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
     });
 };
 
+var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task, callback) {
+    infoLogger.DetailLogger.log('info', '%s ************************* Start GetResource *************************', logKey);
+
+    var key = util.format('Resource:%s:%s:%s', company, tenant, resourceId);
+    redisHandler.GetObj_V(logKey, key, function (err, result, vid) {
+        infoLogger.DetailLogger.log('info', '%s Finished GetResource. Result: %s', logKey, result);
+        if (err) {
+            callback(err, undefined, 0);
+        } else {
+            if (result) {
+                var resourceObj = JSON.parse(result);
+
+                if (resourceObj.ConcurrencyInfo && resourceObj.ConcurrencyInfo.length > 0) {
+
+                    var taskConcurrencyInfo = resourceObj.ConcurrencyInfo.filter(function (cData) {
+                        var splitCData = cData.split(":");
+                        if(splitCData.length >=5 && splitCData[4].toLowerCase() === task.toLowerCase()){
+                            return cData;
+                        }
+                    });
+                    redisHandler.MGetObj(logKey, taskConcurrencyInfo, function (err, cObjs) {
+
+
+                        if (cObjs && cObjs.length > 0) {
+
+                            var tempConcurrencyInfo = [];
+                            var tempSlotInfo = [];
+                            for (var i = 0; i < cObjs.length; i++) {
+
+                                var cObj = JSON.parse(cObjs[i]);
+
+                                if (cObj.ObjKey.indexOf('CSlotInfo') > -1) {
+                                    tempSlotInfo.push(cObj);
+                                } else {
+                                    cObj.SlotInfo = [];
+                                    tempConcurrencyInfo.push(cObj);
+                                }
+
+                            }
+
+
+                            for (var j = 0; j < tempConcurrencyInfo.length; j++) {
+                                var tci = tempConcurrencyInfo[j];
+
+                                for (var k = 0; k < tempSlotInfo.length; k++) {
+                                    var rsi = tempSlotInfo[k];
+                                    if (rsi.HandlingType === tci.HandlingType) {
+                                        tci.SlotInfo.push(rsi);
+                                    }
+                                }
+                            }
+
+
+                            resourceObj.ConcurrencyInfo = tempConcurrencyInfo;
+
+                        }
+
+                        callback(err, resourceObj, vid);
+
+                    });
+
+                } else {
+
+                    callback(err, resourceObj, vid);
+                }
+
+            } else {
+                callback(undefined, undefined, vid);
+            }
+        }
+
+    });
+};
+
+
 var FileCheckAndDelete = function (company, tenant, filename) {
     return new Promise(function (fulfill, reject) {
         fileService.GetFileMetadata(company, tenant, filename, function (err, fileData) {
@@ -1144,3 +1219,4 @@ module.exports.SetAndPublishResourceStatus = SetAndPublishResourceStatus;
 module.exports.GetResourceStatusDurationListAll = GetResourceStatusDurationListAll;
 module.exports.GetResourceBreakSummery = GetResourceBreakSummery;
 module.exports.GetResourceCountBySkills = GetResourceCountBySkills;
+module.exports.GetResourceTaskStatus = GetResourceTaskStatus;
