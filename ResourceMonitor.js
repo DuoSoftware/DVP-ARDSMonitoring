@@ -240,11 +240,11 @@ var GetResourceFilterByClassTypeCategory = function (logkey, company, tenant, re
 };
 
 var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetResource *************************', logKey);
+    logger.info('info', '%s ************************* Start GetResource *************************', logKey);
 
     var key = util.format('Resource:%s:%s:%s', company, tenant, resourceId);
     redisHandler.GetObj_V(logKey, key, function (err, result, vid) {
-        infoLogger.DetailLogger.log('info', '%s Finished GetResource. Result: %s', logKey, result);
+        logger.info('info', '%s Finished GetResource. Result: %s', logKey, result);
         if (err) {
             callback(err, undefined, 0);
         } else {
