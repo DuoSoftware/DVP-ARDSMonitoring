@@ -255,7 +255,7 @@ var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task,
                 redisHandler.GetObj(logKey, statuskey, function (err, result) {
                     logger.info('info', '%s Finished GetResourceState. Result: %s', logKey, result);
                     if (result) {
-                        resourceObj.ResourceStatus = result
+                        resourceObj.ResourceStatus = JSON.parse(result);
                     }
 
                     if (resourceObj.ConcurrencyInfo && resourceObj.ConcurrencyInfo.length > 0) {
