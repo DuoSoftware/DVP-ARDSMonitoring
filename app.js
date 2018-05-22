@@ -841,6 +841,34 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/break/details', authoriza
     return next();
 });
 
+server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/:task/status',authorization({resource:"ardsresource", action:"read"}), function (req, res, next) {
+    try {
+        var company = req.user.company;
+        var tenant = req.user.tenant;
+        var objkey = util.format('resource-getall:company_%s:tenant_%s', company, tenant);
+        var logkey = util.format('[%s]::[%s]', uuid.v1(), objkey);
+
+        infoLogger.ReqResLogger.log('info', '%s --------------------------------------------------', logkey);
+        infoLogger.ReqResLogger.log('info', '%s Start- resource/GetResourceTaskStatus #', logkey, {request: req.params});
+        resourceMonitor.GetResourceTaskStatus(logkey, company, tenant, req.params.resourceId, req.params.task, function (err, result) {
+            if (err) {
+                infoLogger.ReqResLogger.log('error', '%s End- resource/GetResourceTaskStatus :: Error: %s #', logkey, err);
+                var jsonString = messageFormatter.FormatMessage(err, "ERROR", false, undefined);
+                res.end(jsonString);
+            }
+            else {
+                infoLogger.ReqResLogger.log('info', '%s End- resource/GetResourceTaskStatus :: Result: %s #', logkey, 'success');
+                var jsonString = messageFormatter.FormatMessage(err, "get resources status for task success", true, result);
+                res.end(jsonString);
+            }
+        });
+    } catch (ex2) {
+        var jsonString = messageFormatter.FormatMessage(ex2, "ERROR", false, undefined);
+        res.end(jsonString);
+    }
+    return next();
+});
+
 
 
 //---------------------------Call Center Monitoring-----------------------------------
