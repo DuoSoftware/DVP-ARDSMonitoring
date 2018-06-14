@@ -1031,6 +1031,8 @@ var GetResourceBreakSummery = function (startTime, endTime, companyId, tenantId,
                 var resourceListQuery = {
                     attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
                     where: [{
+                        TenantId: tenantId,
+                        CompanyId: companyId,
                         StatusType: 'ResourceStatus',
                         Status: 'NotAvailable',
                         createdAt: {between: [startTime, endTime]}
@@ -1041,6 +1043,8 @@ var GetResourceBreakSummery = function (startTime, endTime, companyId, tenantId,
                     if (resourceList && resourceList.length > 0) {
                         var breakDetailQuery = {
                             where: [{
+                                TenantId: tenantId,
+                                CompanyId: companyId,
                                 StatusType: 'ResourceStatus',
                                 Status: 'NotAvailable',
                                 createdAt: {between: [startTime, endTime]}
