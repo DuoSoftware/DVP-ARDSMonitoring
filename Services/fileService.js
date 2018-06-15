@@ -25,7 +25,7 @@ function GetFileMetadata(company, tenant, filename, callback){
                 callback(err, undefined);
             }else{
                 if(res1.statusCode === 200) {
-                    callback(undefined, JSON.parse(result));
+                    callback(undefined, JSON.parse(result).Result);
                 }else{
                     callback(new Error(result), undefined);
                 }
