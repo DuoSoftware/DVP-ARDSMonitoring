@@ -510,7 +510,7 @@ var PrepareForDownloadResourceRejectSummery = function (startTime, endTime, reso
         FileCheckAndDelete(companyId, tenantId, fileName).then(function (chkResult) {
             if (chkResult) {
 
-                fileService.FileUploadReserve(companyId, tenantId, fileName,{fileCategory: "REPORTS"}, function (err, fileResResp) {
+                fileService.FileUploadReserve(companyId, tenantId, fileName,{fileCategory: "REPORTS", filename: fileName, displayname: fileName}, function (err, fileResResp) {
                     if (err) {
                         jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
                         logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
