@@ -596,7 +596,7 @@ var PrepareForDownloadResourceRejectSummery = function (startTime, endTime, reso
         FileCheckAndDelete(companyId, tenantId, fileName).then(function (chkResult) {
             if (chkResult) {
 
-                fileService.FileUploadReserve(companyId, tenantId, fileName, function (err, fileResResp) {
+                fileService.FileUploadReserve(companyId, tenantId, fileName,{fileCategory: "REPORTS", filename: fileName, displayname: fileName}, function (err, fileResResp) {
                     if (err) {
                         jsonString = messageFormatter.FormatMessage(err, "ERROR", false, null);
                         logger.debug('[DVP-CDRProcessor.DownloadCDR] - API RESPONSE : %s', jsonString);
@@ -1126,6 +1126,8 @@ var GetResourceBreakSummery = function (startTime, endTime, companyId, tenantId,
                 var resourceListQuery = {
                     attributes: [[dbConn.SequelizeConn.fn('DISTINCT', dbConn.SequelizeConn.col('ResourceId')), 'ResourceId']],
                     where: [{
+                        TenantId: tenantId,
+                        CompanyId: companyId,
                         StatusType: 'ResourceStatus',
                         Status: 'NotAvailable',
                         createdAt: {between: [startTime, endTime]}
@@ -1136,6 +1138,8 @@ var GetResourceBreakSummery = function (startTime, endTime, companyId, tenantId,
                     if (resourceList && resourceList.length > 0) {
                         var breakDetailQuery = {
                             where: [{
+                                TenantId: tenantId,
+                                CompanyId: companyId,
                                 StatusType: 'ResourceStatus',
                                 Status: 'NotAvailable',
                                 createdAt: {between: [startTime, endTime]}
