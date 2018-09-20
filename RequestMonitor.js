@@ -222,7 +222,95 @@ var ExtractDailySummary = function(dailySummary, callback){
     //return (e);
 };
 
-var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryToDate, callback){
+var GetDailySummaryRecords = function(tenant, company, req, callback){
+
+    var summaryFromDate = req.params.summaryFromDate; var summaryToDate = req.params.summaryToDate;
+    var query = "SELECT * FROM \"Dashboard_DailySummaries\" WHERE \"Company\" = '"+company+"' and \"Tenant\" = '"+tenant+"' and \"SummaryDate\"::date >= date '"+summaryFromDate+"' and \"SummaryDate\"::date <= date '"+summaryToDate+"' and \"WindowName\" in (SELECT \"WindowName\"	FROM \"Dashboard_DailySummaries\"	WHERE \"WindowName\" = 'QUEUE' or \"WindowName\" = 'QUEUEDROPPED' or \"WindowName\" = 'QUEUEANSWERED')";
+    if(req.params.businessUnit && req.params.businessUnit!="ALL"){
+        query = "SELECT * FROM \"Dashboard_DailySummaries\" WHERE \"BusinessUnit\"='"+req.params.businessUnit+"' and \"Company\" = '"+company+"' and \"Tenant\" = '"+tenant+"' and \"SummaryDate\"::date >= date '"+summaryFromDate+"' and \"SummaryDate\"::date <= date '"+summaryToDate+"' and \"WindowName\" in (SELECT \"WindowName\"	FROM \"Dashboard_DailySummaries\"	WHERE \"WindowName\" = 'QUEUE' or \"WindowName\" = 'QUEUEDROPPED' or \"WindowName\" = 'QUEUEANSWERED')";
+    }
+    dbConn.SequelizeConn.query(query, { type: dbConn.SequelizeConn.QueryTypes.SELECT})
+        .then(function(records) {
+            if (records && records.length >0) {
+                logger.info('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
+                var Queues = [];
+                for(var i in records){
+                    var record = records[i];
+                    var queueDateInfo = FilterObjFromArray(Queues, "queueDate", record.SummaryDate.toDateString());
+                    if(!queueDateInfo){
+                        queueDateInfo = {queueDate:record.SummaryDate.toDateString(), queueInfos:[]};
+                        Queues.push(queueDateInfo);
+                    }
+                    var queueInfo = FilterObjFromArray(queueDateInfo.queueInfos, "queueId", record.Param1);
+                    if (queueInfo) {
+                        queueInfo.records.push(record);
+                    } else {
+                        queueDateInfo.queueInfos.push({queueId: record.Param1, records: [record]});
+                    }
+                }
+                var DailySummary = [];
+                for(var t in Queues) {
+                    var date = Queues[t];
+
+                    for (var j in date.queueInfos) {
+                        var reqQueue = date.queueInfos[j];
+
+                        var queue = FilterObjFromArray(reqQueue.records, "WindowName", "QUEUE");
+                        var queueAnswered = FilterObjFromArray(reqQueue.records, "WindowName", "QUEUEANSWERED");
+                        var queueDropped = FilterObjFromArray(reqQueue.records, "WindowName", "QUEUEDROPPED");
+
+                        var summary = {};
+                        if (queue) {
+                            var summaryDate = FilterObjFromArray(DailySummary, "Date", queue.SummaryDate.toDateString());
+                            if(!summaryDate){
+                                summaryDate = {Date: queue.SummaryDate.toDateString(), Summary: []};
+                                DailySummary.push(summaryDate);
+                            }
+
+                            summary.Queue = queue.Param1;
+                            summary.Date = queue.SummaryDate;
+                            summary.TotalQueued = queue.TotalCount;
+                            summary.TotalQueueTime = queue.TotalTime;
+                            summary.MaxTime = queue.MaxTime;
+                            summary.QueueAnswered = 0;
+                            summary.QueueDropped = 0;
+                            summary.ThresholdValue = queue.ThresholdValue;
+                            if (summary.TotalQueued > 0) {
+                                summary.AverageQueueTime = summary.TotalQueueTime / summary.TotalQueued;
+                                var sla = ((summary.TotalQueued - queue.ThresholdValue) / summary.TotalQueued) * 100;
+                                summary.SLA = sla;
+                            }
+                            if (queueAnswered) {
+                                summary.QueueAnswered = queueAnswered.TotalCount;
+                            }
+                            if (queueDropped) {
+                                summary.QueueDropped = queueDropped.TotalCount;
+                            }
+
+                            summaryDate.Summary.push(summary);
+                        }
+                    }
+                }
+
+                ExtractDailySummary(DailySummary, function(dailySummaryWithQueueName){
+                    var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, dailySummaryWithQueueName);
+                    callback.end(jsonString);
+                });
+
+            }
+            else {
+                logger.error('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [PGSQL]  - No record found for %s - %s  ', tenant, company);
+                var jsonString = messageFormatter.FormatMessage(new Error('No record'), "No records found", false, undefined);
+                callback.end(jsonString);
+            }
+        }).error(function (err) {
+        logger.error('[DVP-ARDSMonitoring.GetDailySummaryRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+        var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
+        callback.end(jsonString);
+    });
+};
+
+/*var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryToDate, callback){
     dbConn.SequelizeConn.query("SELECT * FROM \"Dashboard_DailySummaries\" WHERE \"Company\" = '"+company+"' and \"Tenant\" = '"+tenant+"' and \"SummaryDate\"::date >= date '"+summaryFromDate+"' and \"SummaryDate\"::date <= date '"+summaryToDate+"' and \"WindowName\" in (SELECT \"WindowName\"	FROM \"Dashboard_DailySummaries\"	WHERE \"WindowName\" = 'QUEUE' or \"WindowName\" = 'QUEUEDROPPED' or \"WindowName\" = 'QUEUEANSWERED')", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
@@ -302,7 +390,7 @@ var GetDailySummaryRecords = function(tenant, company, summaryFromDate, summaryT
             var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
             callback.end(jsonString);
         });
-};
+};*/
 
 var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDate, callback){
     dbConn.SequelizeConn.query("SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"", { type: dbConn.SequelizeConn.QueryTypes.SELECT})
