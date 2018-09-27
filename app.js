@@ -426,6 +426,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
         var endDate = req.query.endDate;
         var skill = req.query.skill;
         var resourceId = req.params.resourceId;
+        var bu = req.params.bu;
 
         var pageNo =parseInt(req.params.pageNo);
         var rowCount = parseInt(req.params.rowCount);
@@ -441,7 +442,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/:pageNo/:
         logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceStatusDurationList(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, skill, function(err, resList)
+        resourceMonitor.GetResourceStatusDurationList(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, skill, bu, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationList] - API RESPONSE : %s', jsonString);
@@ -506,6 +507,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/download'
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
         var skill = req.query.skill;
+        var bu = req.params.bu;
         var resourceId = req.params.resourceId;
 
         var companyId = req.user.company;
@@ -551,7 +553,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/download'
                                 logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - API RESPONSE : %s', jsonString);
                                 res.end(jsonString);
 
-                                resourceMonitor.GetResourceStatusDurationListAll(startDate, endDate, resourceId, companyId, tenantId, skill, function(err, resList)
+                                resourceMonitor.GetResourceStatusDurationListAll(startDate, endDate, resourceId, companyId, tenantId, skill, bu,function(err, resList)
                                 {
 
                                     logger.debug('[DVP-ARDSMonitoring.DownloadResourceStatusDurationList] - ACW Processing Done');
@@ -575,9 +577,22 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/resource/:resourceId/download'
                                         {
                                             //Convert to CSV
 
-                                            var fieldNames = ['Call Direction', 'From Number', 'To Number', 'Skill', 'Hangup Party', 'ACW Duration(sec)'];
+                                            var fieldNames = ['ResourceName','Call Direction', 'From Number', 'To Number', 'Skill', 'Hangup Party', 'ACW Duration(sec)'];
 
-                                            var fields = ['DVPCallDirection', 'SipFromUser', 'SipToUser', 'AgentSkill', 'HangupParty', 'Duration'];
+                                            var fields = ['ResourceName','DVPCallDirection', 'SipFromUser', 'SipToUser', 'AgentSkill', 'HangupParty', 'Duration'];
+
+                                            resList.forEach(function(item) {
+
+                                                item.DVPCallDirection = item.CallCDRProcessed ? item.CallCDRProcessed.DVPCallDirection : 'undefined';
+                                                item.SipFromUser = item.CallCDRProcessed ? item.CallCDRProcessed.SipFromUser : 'undefined';
+                                                item.SipToUser = item.CallCDRProcessed ? item.CallCDRProcessed.SipToUser : 'undefined';
+                                                item.AgentSkill = item.CallCDRProcessed ? item.CallCDRProcessed.AgentSkill : 'undefined';
+                                                item.HangupParty = item.CallCDRProcessed ? item.CallCDRProcessed.HangupParty : 'undefined';
+                                                item.ResourceName = item.ResResource ? item.ResResource.ResourceName : 'undefined';
+
+
+                                            });
+
 
                                             var csvFileData = json2csv({ data: resList, fields: fields, fieldNames : fieldNames });
 
@@ -690,6 +705,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId',
         var endDate = req.query.endDate;
         var skill = req.query.skill;
         var resourceId = req.params.resourceId;
+        var bu = req.params.bu;
 
         var companyId = req.user.company;
         var tenantId = req.user.tenant;
@@ -702,7 +718,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/acw/summery/resource/:resourceId',
         logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceStatusDurationSummery(startDate, endDate, resourceId, companyId, tenantId, skill, function(err, resList)
+        resourceMonitor.GetResourceStatusDurationSummery(startDate, endDate, resourceId, companyId, tenantId, skill,bu, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceStatusDurationSummery] - API RESPONSE : %s', jsonString);
@@ -728,6 +744,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/:
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
         var resourceId = req.params.resourceId;
+        var bu = req.params.bu;
 
         var pageNo =parseInt(req.params.pageNo);
         var rowCount = parseInt(req.params.rowCount);
@@ -743,7 +760,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/:
         logger.debug('[DVP-ARDSMonitoring.GetResourceRejectSummery] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceRejectSummery(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount, function(err, resList)
+        resourceMonitor.GetResourceRejectSummery(startDate, endDate, resourceId, companyId, tenantId, pageNo, rowCount,bu, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceRejectSummery] - API RESPONSE : %s', jsonString);
@@ -769,6 +786,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/rejectCo
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
         var resourceId = req.params.resourceId;
+        var bu = req.params.bu;
 
         var companyId = req.user.company;
         var tenantId = req.user.tenant;
@@ -781,7 +799,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/rejectCo
         logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.GetResourceRejectCount(startDate, endDate, resourceId, companyId, tenantId, function(err, resList)
+        resourceMonitor.GetResourceRejectCount(startDate, endDate, resourceId, companyId, tenantId,bu, function(err, resList)
         {
             var jsonString = messageFormatter.FormatMessage(null, "SUCCESS", true, resList);
             logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - API RESPONSE : %s', jsonString);
@@ -808,6 +826,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/p
         var startDate = req.query.startDate;
         var endDate = req.query.endDate;
         var resourceId = req.params.resourceId;
+        var bu = req.params.bu;
 
         var companyId = parseInt(req.user.company);
         var tenantId = parseInt(req.user.tenant);
@@ -820,7 +839,7 @@ server.get('/DVP/API/:version/ARDS/MONITORING/resource/:resourceId/task/reject/p
         logger.debug('[DVP-ARDSMonitoring.GetResourceRejectCount] - HTTP Request Received - Params - startDate : %s, endDate : %s', startDate, endDate);
 
 
-        resourceMonitor.PrepareForDownloadResourceRejectSummery(startDate, endDate, resourceId, companyId, tenantId, res);
+        resourceMonitor.PrepareForDownloadResourceRejectSummery(startDate, endDate, resourceId, companyId, tenantId, bu, res);
 
     }
     catch(ex)
