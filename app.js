@@ -926,9 +926,9 @@ server.get('/DVP/API/:version/ARDS/MONITORING/callCenter/from/:summaryFromDate/t
         var companyId = req.user.company.toString();
 
         if(req.query && req.query.reqType === 'download'){
-            callCenterMonitor.PrepareForDownloadCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
+            callCenterMonitor.PrepareForDownloadCallCenterPerformance(tenantId, companyId, req, res);
         }else {
-            callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, function (err, result) {
+            callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req, function (err, result) {
                 if (err) {
                     jsonString = messageFormatter.FormatMessage(err, "Error", false, undefined);
                     res.end(jsonString);
