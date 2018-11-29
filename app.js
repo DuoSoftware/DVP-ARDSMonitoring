@@ -254,7 +254,13 @@ server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaHourlyBreakDown/date/:sum
             throw new Error("invalid tenant or company.");
         var tenantId = req.user.tenant;
         var companyId = req.user.company;
-        requsetMonitor.GetQueueSlaHourlyBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
+        var bUnit =null;
+
+        if(req.query && req.query.bUnit)
+        {
+            bUnit=req.query.bUnit;
+        }
+        requsetMonitor.GetQueueSlaHourlyBreakDownRecords(tenantId, companyId, req.params.summaryDate,bUnit, res);
     }
     catch (ex) {
         logger.error('[QueueSummaryHandler.GetQueueSlaHourlyBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
@@ -277,7 +283,14 @@ server.get('/DVP/API/:version/ARDS/MONITORING/QUEUE/SlaBreakDown/date/:summaryDa
             throw new Error("invalid tenant or company.");
         var tenantId = req.user.tenant;
         var companyId = req.user.company;
-        requsetMonitor.GetQueueSlaBreakDownRecords(tenantId, companyId, req.params.summaryDate, res);
+        var bUnit=null;
+
+        if(req.query && req.query.bUnit)
+        {
+            bUnit=req.query.bUnit;
+        }
+
+        requsetMonitor.GetQueueSlaBreakDownRecords(tenantId, companyId, req.params.summaryDate,bUnit, res);
     }
     catch (ex) {
         logger.error('[QueueSummaryHandler.GetQueueSlaBreakDownRecords] - [HTTP]  - Exception occurred -  Data - %s ', JSON.stringify(req.body), ex);
@@ -926,9 +939,9 @@ server.get('/DVP/API/:version/ARDS/MONITORING/callCenter/from/:summaryFromDate/t
         var companyId = req.user.company.toString();
 
         if(req.query && req.query.reqType === 'download'){
-            callCenterMonitor.PrepareForDownloadCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, res);
+            callCenterMonitor.PrepareForDownloadCallCenterPerformance(tenantId, companyId, req, res);
         }else {
-            callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req.params.summaryFromDate, req.params.summaryToDate, function (err, result) {
+            callCenterMonitor.GetCallCenterPerformance(tenantId, companyId, req, function (err, result) {
                 if (err) {
                     jsonString = messageFormatter.FormatMessage(err, "Error", false, undefined);
                     res.end(jsonString);
