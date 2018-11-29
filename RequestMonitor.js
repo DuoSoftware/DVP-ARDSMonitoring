@@ -275,8 +275,6 @@ var GetDailySummaryRecords = function(tenant, company, req, callback){
                             summary.QueueAnswered = 0;
                             summary.QueueDropped = 0;
                             summary.ThresholdValue = queue.ThresholdValue;
-                            summary.BusinessUnit=queue.BusinessUnit;
-
                             if (summary.TotalQueued > 0) {
                                 summary.AverageQueueTime = summary.TotalQueueTime / summary.TotalQueued;
                                 var sla = ((summary.TotalQueued - queue.ThresholdValue) / summary.TotalQueued) * 100;
@@ -394,14 +392,9 @@ var GetDailySummaryRecords = function(tenant, company, req, callback){
         });
 };*/
 
-var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDate,bUnit, callback){
-
-
-    var query ="SELECT t1.\"Param1\" as \"Queue\",t1.\"BusinessUnit\" as \"BusinessUnit\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
-    if(bUnit && bUnit!="ALL")
-    {
-        query ="SELECT t1.\"Param1\" as \"Queue\",t1.\"BusinessUnit\" as \"BusinessUnit\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"BusinessUnit\" = '"+bUnit+"' AND t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
-    }
+var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDate, callback){
+    var query = "SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
+    logger.info(query);
     dbConn.SequelizeConn.query(query, { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
@@ -446,19 +439,17 @@ var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDat
         });
 };
 
-var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUnit, callback){
-    var query = "SELECT t1.\"Param1\" as \"Queue\",t1.\"BusinessUnit\" as \"BusinessUnit\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
-    if(bUnit && bUnit!="ALL")
-    {
-        query = "SELECT t1.\"Param1\" as \"Queue\",t1.\"BusinessUnit\" as \"BusinessUnit\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"BusinessUnit\" ='"+bUnit+"' AND t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
-    }
+var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate, callback){
 
+    var query = "SELECT t1.\"Param1\" as \"Queue\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
+    logger.info(query);
     dbConn.SequelizeConn.query(query, { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
                 logger.info('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [PGSQL]  - Data found  - %s-[%s]', tenant, company, JSON.stringify(records));
                 var count = 0;
                 var newSummaries = [];
+                var recordObj =  {};
                 for(var i in records){
                     SetQueueName(records[i], function(newSummary){
                         count++;
@@ -474,20 +465,61 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUni
                                 newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
                             }
 
-                            var queue = FilterObjFromArray(newSummaries, 'Queue', newSummary.Queue);
-                            if (queue) {
-                                var timeRange = FilterObjFromArray(newSummaries, 'BreakDown', newSummary.BreakDown);
-                                if (timeRange) {
-                                    timeRange.ThresholdCount = timeRange.ThresholdCount + newSummary.ThresholdCount;
-                                    timeRange.Average = (timeRange.ThresholdCount / timeRange.TotalCount) * 100;
+                            /////////////////////new code sukitha///////////////////////////////
+
+                            if (recordObj[newSummary.Queue]) {
+                                var tempQueueObj = recordObj[newSummary.Queue];
+                                if (tempQueueObj[newSummary.BreakDown]) {
+                                    var tempBreakDown = tempQueueObj[newSummary.BreakDown];
+                                    tempBreakDown.ThresholdCount += newSummary.ThresholdCount;
+                                    tempBreakDown.TotalCount += newSummary.TotalCount;
+                                    tempBreakDown.Average = (tempBreakDown.ThresholdCount / tempBreakDown.TotalCount) * 100;
+
+                                    tempQueueObj[newSummary.BreakDown] = tempBreakDown;
+                                    recordObj[newSummary.Queue] = tempQueueObj;
+
                                 } else {
-                                    newSummaries.push(newSummary);
+
+                                    tempQueueObj[newSummary.BreakDown] = newSummary;
+                                    recordObj[newSummary.Queue] = tempQueueObj;
                                 }
+
                             } else {
-                                newSummaries.push(newSummary);
+                                var tempQueueObj = {};
+
+
+                                tempQueueObj[newSummary.BreakDown] = newSummary;
+                                recordObj[newSummary.Queue] = tempQueueObj;
                             }
                         }
+
+
+                        //     var queue = FilterObjFromArray(newSummaries, 'Queue', newSummary.Queue);
+                        //     if (queue) {
+                        //         var timeRange = FilterObjFromArray(newSummaries, 'BreakDown', newSummary.BreakDown);
+                        //         if (timeRange) {
+                        //             timeRange.ThresholdCount = timeRange.ThresholdCount + newSummary.ThresholdCount;
+                        //             timeRange.Average = (timeRange.ThresholdCount / timeRange.TotalCount) * 100;
+                        //             //newSummaries.push(newSummary);
+                        //         } else {
+                        //             newSummaries.push(newSummary);
+                        //         }
+                        //     } else {
+                        //         newSummaries.push(newSummary);
+                        //     }
+                        // }
+
                         if(count == records.length){
+
+                            for(key1 in recordObj){
+
+                                var obj1 = recordObj[key1];
+                                for(key2 in obj1){
+                                    newSummaries.push(obj1[key2]);
+                                }
+                            }
+
+
                             var jsonString = messageFormatter.FormatMessage(undefined, "SUCCESS", true, newSummaries);
                             callback.end(jsonString);
                         }
