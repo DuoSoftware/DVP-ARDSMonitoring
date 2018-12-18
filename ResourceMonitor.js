@@ -324,7 +324,6 @@ var GetResourceTaskStatus = function (logKey, company, tenant, resourceId, task,
     });
 };
 
-
 var FileCheckAndDelete = function (company, tenant, filename) {
     return new Promise(function (fulfill, reject) {
         fileService.GetFileMetadata(company, tenant, filename, function (err, fileData) {
@@ -369,8 +368,6 @@ var convertToMMSS = function (sec) {
 
     return minutes + ':' + seconds;
 };
-
-
 
 var GetResourceStatusDurationList = function (startTime, endTime, resourceId, companyId, tenantId, pageNo, rowCount, skill, bu, callback) {
 
@@ -560,8 +557,6 @@ var GetResourceStatusDurationList_back = function (startTime, endTime, resourceI
         callback(ex, emptyArr);
     }
 };
-
-
 
 var GetResourceStatusDurationListAll = function (startTime, endTime, resourceId, companyId, tenantId, skill, bu, callback) {
 
@@ -804,9 +799,6 @@ var GetResourceStatusDurationSummery = function (startTime, endTime, resourceId,
         callback(ex, emptyArr);
     }
 };
-
-
-
 
 
 var GetResourceStatusDurationSummery_back = function (startTime, endTime, resourceId, companyId, tenantId, skill, bu, callback) {
