@@ -102,15 +102,23 @@ var SearchResourceByTags = function (logkey, searchTags, callback) {
             if (result && result.length > 0) {
                 for (var i in result) {
                     var resource = result[i].Obj;
-                    GetResourceStatus(logkey, resource, function (res) {
-                        ProcessResourceData(logkey, res, function (tempResource) {
-                            count++;
-                            tempResourceInfos.push(tempResource);
-                            if (count == result.length) {
-                                callback(null, tempResourceInfos);
-                            }
+                    if(resource) {
+                        GetResourceStatus(logkey, resource, function (res) {
+                            ProcessResourceData(logkey, res, function (tempResource) {
+                                count++;
+                                tempResourceInfos.push(tempResource);
+                                if (count == result.length) {
+                                    callback(null, tempResourceInfos);
+                                }
+                            });
                         });
-                    });
+                    }else{
+
+                        count++;
+                        if (count == result.length) {
+                            callback(null, tempResourceInfos);
+                        }
+                    }
                 }
             } else {
                 callback(null, tempResourceInfos);
