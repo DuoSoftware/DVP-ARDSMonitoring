@@ -40,7 +40,7 @@ var TimeFormatter = function (seconds) {
 };
 
 // Load data from pgsql database
-var LoadCallCenterPerformanceData = function(tenant, company, startTime, endTime){
+var LoadCallCenterPerformanceData = function(tenant, company, startTime, endTime,businessUnit){
     var deferred = Q.defer();
 
     try
@@ -50,6 +50,9 @@ var LoadCallCenterPerformanceData = function(tenant, company, startTime, endTime
             where : [{Company: company, Tenant: tenant, WindowName: {$in:['CALLS', 'QUEUE', 'QUEUEANSWERED', 'CONNECTED', 'QUEUEDROPPED', 'LOGIN', 'AFTERWORK', 'BREAK', 'AGENTHOLD']}, SummaryDate: {between:[startTime, endTime]}}]
         };
 
+        if(businessUnit && businessUnit!=="*"){
+            callCenterPerformanceQuery.where.push({'BusinessUnit':businessUnit})
+        }
         dbConn.DashboardDailySummary.findAll(callCenterPerformanceQuery).then(function(performanceData)
         {
             deferred.resolve(performanceData);
@@ -378,7 +381,10 @@ var GetSingleDateSummary = function (filterDataForDate, summaryDate) {
 };
 
 // Initiate performance calculation
-var GetCallCenterPerformance = function (tenant, company, startTime, endTime, callback) {
+var GetCallCenterPerformance = function (tenant, company, req, callback) {
+    var startTime = req.params.summaryFromDate;
+    var endTime = req.params.summaryToDate;
+    var businessUnit = req.params.businessUnit ;
 
     /*var callCenterPerformance = {
         totalInbound: 0,
@@ -404,7 +410,7 @@ var GetCallCenterPerformance = function (tenant, company, startTime, endTime, ca
     };*/
 
 
-    LoadCallCenterPerformanceData(tenant, company, startTime, endTime).then(function(performanceData){
+    LoadCallCenterPerformanceData(tenant, company, startTime, endTime,businessUnit).then(function(performanceData){
 
         var summaryTasks = [];
         var m_endTime = moment(endTime);
@@ -464,11 +470,15 @@ var FileCheckAndDelete = function(company, tenant, filename) {
 };
 
 
-var PrepareForDownloadCallCenterPerformance = function(tenant, company, startTime, endTime, res) {
+var PrepareForDownloadCallCenterPerformance = function(tenant, company, req, res) {
     var jsonString;
     try
     {
-        var fileName = util.format('CallCenterPerformanceReport_%s_%s.csv', startTime, endTime);
+        var startTime = req.params.summaryFromDate;
+        var endTime = req.params.summaryToDate;
+        var businessUnit = req.params.businessUnit ;
+
+        var fileName = util.format('CallCenterPerformanceReport_%s_%s_%s.csv', startTime, endTime,businessUnit);
 
         FileCheckAndDelete(company, tenant, fileName).then(function(chkResult) {
             if(chkResult) {
@@ -493,7 +503,7 @@ var PrepareForDownloadCallCenterPerformance = function(tenant, company, startTim
 
 
 
-                            LoadCallCenterPerformanceData(tenant, company, startTime, endTime).then(function(performanceData){
+                            LoadCallCenterPerformanceData(tenant, company, startTime, endTime,businessUnit).then(function(performanceData){
 
                                 var summaryTasks = [];
                                 var m_endTime = moment(endTime);
