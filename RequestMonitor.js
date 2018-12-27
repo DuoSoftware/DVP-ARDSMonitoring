@@ -15,7 +15,7 @@ var SplitAndGetStatus = function (logKey, requestlist) {
         for (var i in requestlist) {
             var val = requestlist[i];
             console.log("    " + i + ": " + val);
-            
+
             var requestObj = val.Obj;
             var requestVid = val.Vid;
             requestHandler.GetRequestState(logKey, requestObj.Company, requestObj.Tenant, requestObj.SessionId, function (err, reqstate) {
@@ -45,12 +45,12 @@ var SearchRequestByTags = function (logkey, searchTags, callback) {
             var returnlist = [];
             if (requestlist.length > 0) {
                 var gobtk = SplitAndGetStatus(logkey, requestlist);
-                
+
                 gobtk.on('result', function (requestObj, requestVid, reqstate) {
                     var obj = { Request: requestObj, Status: reqstate, Vid: requestVid };
                     returnlist.push(obj);
                 });
-                
+
                 gobtk.on('end', function () {
                     callback(null, returnlist);
                 });
@@ -89,14 +89,14 @@ var GetAllQueueDetails = function (logkey, company, tenant, callback) {
                         var unit = o.Request.QueueId;
                         if (!(unit in returnlist)) {
                             returnlist.push(returnlist[unit] = {
-                                Queue: o.Request.QueueId, 
+                                Queue: o.Request.QueueId,
                                 Items: [o]
                             });
                         } else {
                             returnlist[unit].Items.push(o);
                         }
                     }
-                    
+
                     return result;
                 }, { arr: [] }).arr;
             }
@@ -120,19 +120,19 @@ var GetQueueDetailsFilterByClassTypeCategory = function (logkey, company, tenant
                         var unit = o.Request.QueueId;
                         if (!(unit in returnlist)) {
                             returnlist.push(returnlist[unit] = {
-                                Queue: o.Request.QueueId, 
+                                Queue: o.Request.QueueId,
                                 Items: [o]
                             });
                         } else {
                             returnlist[unit].Items.push(o);
                         }
                     }
-                    
+
                     return result;
                 }, { arr: [] }).arr;
             }
         }
-        
+
         callback(err, returnlist);
     });
 };
@@ -205,18 +205,18 @@ var ExtractSummary = function(date, summaries){
 var ExtractDailySummary = function(dailySummary, callback){
     //var e = new EventEmitter();
     //process.nextTick(function () {
-        var count = 0;
-        var newDailySummary = [];
-        for(var i in dailySummary){
-            var es = ExtractSummary(dailySummary[i].Date, dailySummary[i].Summary);
-            es.on('endSummary', function(date ,summary){
-                count++;
-                newDailySummary.push({Date: date, Summary: summary});
-                if(count == dailySummary.length){
-                    callback(newDailySummary);
-                }
-            });
-        }
+    var count = 0;
+    var newDailySummary = [];
+    for(var i in dailySummary){
+        var es = ExtractSummary(dailySummary[i].Date, dailySummary[i].Summary);
+        es.on('endSummary', function(date ,summary){
+            count++;
+            newDailySummary.push({Date: date, Summary: summary});
+            if(count == dailySummary.length){
+                callback(newDailySummary);
+            }
+        });
+    }
     //});
 
     //return (e);
@@ -411,13 +411,24 @@ var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDat
 
                         if(newSummary){
                             newSummary.SlaViolated = "True";
-                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1){
-                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                            newSummary.formatted =false;
+                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1 && !newSummary.formatted ){
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", "");
+                                newSummary.BreakDown = "Greater than "+newSummary.BreakDown;
+                                newSummary.formatted = true;
                             }
 
-                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1){
+                            if(newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1 &&  !newSummary.formatted){
                                 newSummary.SlaViolated = "False";
-                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", "");
+                                newSummary.BreakDown = "Less than "+newSummary.BreakDown;
+                                newSummary.formatted = true;
+                            }
+                            if(newSummary.BreakDown && !newSummary.formatted && newSummary.BreakDown.indexOf("-") > -1)
+                            {
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-", " & ");
+                                newSummary.BreakDown = "Between "+newSummary.BreakDown;
+                                newSummary.formatted = true;
                             }
 
                             newSummaries.push(newSummary);
@@ -437,10 +448,10 @@ var GetQueueSlaHourlyBreakDownRecords = function(tenant, company, summaryFromDat
                 callback.end(jsonString);
             }
         }).error(function (err) {
-            logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
-            var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
-            callback.end(jsonString);
-        });
+        logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+        var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
+        callback.end(jsonString);
+    });
 };
 
 var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUnit, callback){
@@ -450,7 +461,7 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUni
     {
         query ="SELECT t1.\"Param1\" as \"Queue\",t1.\"BusinessUnit\" as \"BusinessUnit\", t1.\"TotalCount\", t2.\"BreakDown\", t2.\"ThresholdCount\", t2.\"SummaryDate\", t2.\"Hour\", round((t2.\"ThresholdCount\"::numeric/t1.\"TotalCount\"::numeric) *100,2) as \"Average\" FROM \"Dashboard_DailySummaries\" t1, \"Dashboard_ThresholdBreakDowns\" t2 WHERE t1.\"BusinessUnit\" = '"+bUnit+"' AND t1.\"Company\"='"+company+"' AND t1.\"Tenant\"='"+tenant+"' AND t1.\"Param1\"=t2.\"Param1\" AND t1.\"WindowName\"='QUEUE' AND t1.\"SummaryDate\"::date = date '"+summaryFromDate+"' AND t2.\"SummaryDate\"::date = date '"+summaryFromDate+"' ORDER BY t2.\"Hour\", t1.\"Param1\"";
     }    logger.info(query);
-    
+
     dbConn.SequelizeConn.query(query, { type: dbConn.SequelizeConn.QueryTypes.SELECT})
         .then(function(records) {
             if (records && records.length >0) {
@@ -464,13 +475,24 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUni
 
                         if(newSummary) {
                             newSummary.SlaViolated = "True";
-                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1) {
-                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", " <");
+                            newSummary.formatted =false;
+                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("gt") > -1 && !newSummary.formatted) {
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-gt", "");
+                                newSummary.BreakDown = "Greater than "+newSummary.BreakDown;
+                                newSummary.formatted = true;
                             }
 
-                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1) {
+                            if (newSummary.BreakDown && newSummary.BreakDown.indexOf("lt") > -1 && !newSummary.formatted) {
                                 newSummary.SlaViolated = "False";
-                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", " <");
+                                newSummary.BreakDown = newSummary.BreakDown.replace("lt-", "");
+                                newSummary.BreakDown = "Less than "+newSummary.BreakDown;
+                                newSummary.formatted = true;
+                            }
+                            if(newSummary.BreakDown && !newSummary.formatted && newSummary.BreakDown.indexOf("-") > -1)
+                            {
+                                newSummary.BreakDown = newSummary.BreakDown.replace("-", " & ");
+                                newSummary.BreakDown = "Between "+newSummary.BreakDown;
+                                newSummary.formatted = true;
                             }
 
                             /////////////////////new code sukitha///////////////////////////////
@@ -541,10 +563,10 @@ var GetQueueSlaBreakDownRecords = function(tenant, company, summaryFromDate,bUni
                 callback.end(jsonString);
             }
         }).error(function (err) {
-            logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
-            var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
-            callback.end(jsonString);
-        });
+        logger.error('[DVP-ARDSMonitoring.GetQueueSlaHourlyBreakDownRecords] - [%s] - [%s] - [PGSQL]  - Error in searching.-[%s]', tenant, company, err);
+        var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
+        callback.end(jsonString);
+    });
 };
 
 
