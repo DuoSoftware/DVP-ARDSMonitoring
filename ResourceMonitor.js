@@ -968,12 +968,20 @@ var GetResourceRejectSummery = function (startTime, endTime, resourceId, company
             var rejectDetailQuery = {
                 attributes: [
                     'TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId',
+                    [dbConn.SequelizeConn.fn('ARRAY_AGG', dbConn.SequelizeConn.col('Reason')), 'Reasons'],
+                    [dbConn.SequelizeConn.fn('ARRAY_AGG', dbConn.SequelizeConn.col('"HangupCauses"."Cause"')), 'Causes'],
                     [dbConn.SequelizeConn.fn('COUNT', dbConn.SequelizeConn.col('SessionId')), 'RejectCount']
                 ],
                 where: [
                     {
                         SessionId: {$in: sessionIdList}
                     }
+                ],
+                include: [
+                    {
+                        model: dbConn.HangupCause, as: "HangupCauses",
+                        attributes: []
+                    } 
                 ],
                 group: ['TenantId', 'CompanyId', 'ResourceId', 'Task', 'SessionId']
                 
