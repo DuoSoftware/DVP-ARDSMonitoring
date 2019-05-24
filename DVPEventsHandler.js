@@ -37,6 +37,8 @@ queueConnection.on('error', function (error) {
 
 module.exports.PublishToQueue = function(messageType, sendObj, companyId, tenantId) {
 
+    console.log('SEND DVP EVENTS : ' + JSON.stringify(sendObj));
+
     try {
         var date = new Date();
         var evtData =
