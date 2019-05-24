@@ -49,19 +49,19 @@ module.exports.PublishToQueue = function(messageType, sendObj, companyId, tenant
                 TenantId: tenantId,
                 EventClass: "AGENT",
                 EventType: "STATUS",
-                EventCategory: sendObj.slotState.toUpperCase(),
+                EventCategory: sendObj.message.slotState.toUpperCase(),
                 EventTime: date.toISOString(),
                 EventData: "",
                 EventParams: "",
                 EventSpecificData: {
-                    EventType: sendObj.slotState.toUpperCase(),
-                    Mode: sendObj.slotMode.toUpperCase(),
-                    ResourceId: sendObj.resourceId,
-                    Resource: sendObj.userName,
+                    EventType: sendObj.message.slotState.toUpperCase(),
+                    Mode: sendObj.message.slotMode.toUpperCase(),
+                    ResourceId: sendObj.message.resourceId,
+                    Resource: sendObj.message.userName,
                     Timestamp: date.valueOf(),
-                    BusinessUnit: sendObj.businessUnit
+                    BusinessUnit: sendObj.message.businessUnit
                 },
-                BusinessUnit: sendObj.businessUnit
+                BusinessUnit: sendObj.message.businessUnit
             };
 
         queueConnection.publish(messageType, evtData, {
