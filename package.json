@@ -4,6 +4,7 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
+    "amqp": "^0.2.6",
     "async": "^2.1.5",
     "bluebird": "^3.4.7",
     "config": "^1.19.0",
