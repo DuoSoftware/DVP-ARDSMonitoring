@@ -16,11 +16,11 @@
 # EXPOSE 8830
 # CMD [ "node", "/usr/local/src/ardsmonitoring/app.js" ]
 
-FROM node:5.10.0
-ARG VERSION_TAG
-RUN git clone -b $VERSION_TAG https://github.com/DuoSoftware/DVP-ARDSMonitoring.git /usr/local/src/ardsmonitoring
-RUN cd /usr/local/src/ardsmonitoring;
+FROM node:10-alpine
 WORKDIR /usr/local/src/ardsmonitoring
+COPY package*.json ./
 RUN npm install
+COPY . .
 EXPOSE 8830
-CMD [ "node", "/usr/local/src/ardsmonitoring/app.js" ]
+CMD [ "node", "app.js" ]
+
