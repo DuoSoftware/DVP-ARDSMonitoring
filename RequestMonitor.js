@@ -580,3 +580,4 @@ module.exports.GetDailySummaryRecords = GetDailySummaryRecords;
 module.exports.GenerateQueueName = GenerateQueueName;
 module.exports.GetQueueSlaHourlyBreakDownRecords = GetQueueSlaHourlyBreakDownRecords;
 module.exports.GetQueueSlaBreakDownRecords = GetQueueSlaBreakDownRecords;
+module.exports.DbConn = dbConn.SequelizeConn;

@@ -17,6 +17,9 @@ var Promise = require('bluebird');
 var fileService = require('./Services/fileService.js');
 var json2csv = require('json2csv');
 var fs = require('fs');
+var healthcheck = require("dvp-healthcheck/DBHealthChecker");
+var redisHandler = require('dvp-ardscommon/RedisHandler.js');
+
 
 process.on("uncaughtException", function(err) {
   console.error(err);
@@ -46,6 +49,12 @@ server.use(jwt({secret: secret.Secret}));
 var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
+
+var hc = new healthcheck(server, {
+  redis: redisHandler.RedisCon,
+  pg: requsetMonitor.DbConn
+});
+hc.Initiate();
 
 //--------------------------Request Monitoring---------------------------------------
 
