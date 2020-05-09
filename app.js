@@ -44,14 +44,14 @@ server.use(restify.fullResponse());
 server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
-server.use(jwt({secret: secret.Secret}));
+server.use(jwt({secret: secret.Secret}).unless({path: ['/healthcheck']}));
 
 var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
 
 var hc = new healthcheck(server, {
-  redis: redisHandler.client,
+  redis: redisHandler.RedisCon,
   pg: requsetMonitor.DbConn
 });
 hc.Initiate();
