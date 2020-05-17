@@ -14,7 +14,7 @@ function GetFileMetadata(company, tenant, filename, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/%s/MetaData', config.Services.fileServiceHost, config.Services.fileServiceVersion, filename);
 
-        if(validator.isIP(config.Services.fileServiceHost))
+        if(config.Services.dynamicPort || validator.isIP(config.Services.fileServiceHost))
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/%s/MetaData', config.Services.fileServiceHost, config.Services.fileServicePort, config.Services.fileServiceVersion, filename);
         }
@@ -40,7 +40,7 @@ function FileUploadReserve(company, tenant, filename, reqBody, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/Reserve', config.Services.fileServiceHost, config.Services.fileServiceVersion);
 
-        if(validator.isIP(config.Services.fileServiceHost))
+        if(config.Services.dynamicPort || validator.isIP(config.Services.fileServiceHost))
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/Reserve', config.Services.fileServiceHost, config.Services.fileServicePort, config.Services.fileServiceVersion);
         }
@@ -77,7 +77,7 @@ var UploadFileAttachment = function(uniqueId, filename, companyId, tenantId, cal
         {
             var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/Upload', fileServiceHost, fileServiceVersion);
 
-            if(validator.isIP(fileServiceHost))
+            if(config.Services.dynamicPort || validator.isIP(fileServiceHost))
             {
                 httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/Upload', fileServiceHost, fileServicePort, fileServiceVersion);
             }
@@ -135,7 +135,7 @@ function UploadFile(company, tenant, uniqueId, formData, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/Upload', config.Services.fileServiceHost, config.Services.fileServiceVersion);
 
-        if(validator.isIP(config.Services.fileServiceHost))
+        if(config.Services.dynamicPort || validator.isIP(config.Services.fileServiceHost))
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/Upload', config.Services.fileServiceHost, config.Services.fileServicePort, config.Services.fileServiceVersion);
         }
@@ -168,7 +168,7 @@ function DeleteFile(company, tenant, uniqueId, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/FileService/File/%s', config.Services.fileServiceHost, config.Services.fileServiceVersion, uniqueId);
 
-        if(validator.isIP(config.Services.fileServiceHost))
+        if(config.Services.dynamicPort || validator.isIP(config.Services.fileServiceHost))
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/%s', config.Services.fileServiceHost, config.Services.fileServicePort, config.Services.fileServiceVersion, uniqueId);
         }

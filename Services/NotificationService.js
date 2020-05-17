@@ -17,7 +17,7 @@ function RequestToNotify(company, tenant, roomName, eventName, msgData){
 
     try {
         var notificationUrl = util.format("http://%s/DVP/API/%s/NotificationService/Notification/initiate/%s", config.Services.notificationServiceHost, config.Services.notificationServiceVersion, roomName);
-        if (validator.isIP(config.Services.notificationServiceHost)) {
+        if (config.Services.dynamicPort || validator.isIP(config.Services.notificationServiceHost)) {
             notificationUrl = util.format("http://%s:%s/DVP/API/%s/NotificationService/Notification/initiate/%s", config.Services.notificationServiceHost, config.Services.notificationServicePort, config.Services.notificationServiceVersion, roomName);
         }
         var companyInfo = util.format("%d:%d", tenant, company);

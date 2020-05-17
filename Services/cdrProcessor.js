@@ -11,7 +11,7 @@ function GetCdrBySessions(company, tenant, sessionIds, callback){
     try {
         var httpUrl = util.format('http://%s/DVP/API/%s/CallCDR/GetCallDetailsBySessions', config.Services.cdrServiceHost, config.Services.cdrServiceVersion);
 
-        if(validator.isIP(config.Services.cdrServiceHost))
+        if(config.Services.dynamicPort || validator.isIP(config.Services.cdrServiceHost))
         {
             httpUrl = util.format('http://%s:%s/DVP/API/%s/FileService/File/%s/MetaData', config.Services.cdrServiceHost, config.Services.cdrServicePort, config.Services.cdrServiceVersion);
         }
