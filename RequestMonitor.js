@@ -2,8 +2,8 @@
 var EventEmitter = require('events').EventEmitter;
 var requestHandler = require('dvp-ardscommon/RequestHandler.js');
 var dbConn = require('dvp-dbmodels');
-var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
-var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
+var messageFormatter = require('dvp-common-lite/CommonMessageGenerator/ClientMessageJsonFormatter.js');
+var logger = require('dvp-common-lite/LogHandler/CommonLogHandler.js').logger;
 var redisHandler = require('dvp-ardscommon/RedisHandler.js');
 
 
