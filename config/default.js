@@ -28,7 +28,7 @@
         "notificationServiceHost": "notificationservice.app1.veery.cloud",
         "notificationServicePort": "8089",
         "notificationServiceVersion": "1.0.0.0",
-        "dynamicPort": false
+        "dynamicPort": true
     },
     "Host": {
         "Ip": "127.0.0.1",
