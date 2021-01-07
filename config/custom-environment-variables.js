@@ -6,6 +6,7 @@
 		"port": "SYS_REDIS_PORT",
 		"user": "SYS_REDIS_USER",
 		"password": "SYS_REDIS_PASSWORD",
+		"db": "SYS_REDIS_DB_CONFIG",
 		"sentinels":{
 			"hosts": "SYS_REDIS_SENTINEL_HOSTS",
 			"port":"SYS_REDIS_SENTINEL_PORT",
@@ -29,6 +30,7 @@
 		"notificationServiceVersion": "SYS_NOTIFICATIONSERVICE_VERSION"
 	},
 	"Host": {
+		"Ip": "HOST_NAME",
 		"Port": "HOST_ARDSMONITOR_PORT",
 		"Version": "HOST_VERSION"
 	},
